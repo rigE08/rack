@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ro"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart Rack Configurator</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif;background:#0f172a;color:#e5e7eb}
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px;background:#1e293b}
+input,select,button{font:inherit;padding:6px 8px;border-radius:6px;border:1px solid #475569;background:#0f172a;color:#e5e7eb}
+button{cursor:pointer}button:hover{background:#334155}.pri{background:#2563eb;border-color:#2563eb}.red{background:#b91c1c;border-color:#b91c1c}
+#name{font-weight:600;width:200px}
+.wrap{display:flex;flex-wrap:wrap;gap:12px;padding:10px}
+aside{width:210px}aside h4{margin:6px 0}
+.lib{padding:6px 8px;margin:4px 0;background:#1e293b;border-left:5px solid;border-radius:4px;cursor:grab;font-size:13px}
+.lib small{color:#94a3b8}
+main{flex:1;min-width:320px}
+.tabs button.on{background:#334155}
+#power{margin:8px 0;padding:8px;border-radius:6px;background:#1e293b}
+#rackbox{overflow:auto;max-width:100%}
+#rack{position:relative;width:560px;border:3px solid #64748b;background:#111827;user-select:none}
+.slot{display:flex;align-items:center;border-bottom:1px solid #1f2937;font-size:10px;color:#64748b;padding-left:4px}
+.dev,#ghost{position:absolute;left:30px;right:4px}
+.dev{background:#1f2937;border:1px solid #475569;border-left:6px solid;border-radius:3px;padding:1px 4px;display:flex;flex-direction:column;overflow:hidden;cursor:pointer}
+.dn{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:12px}.dn small{color:#94a3b8}
+.pg{display:grid;grid-auto-flow:column;gap:2px;flex:1;margin:2px 0}
+.p{display:block;border:1px solid #000;border-radius:2px;min-width:5px;cursor:pointer}.p:hover{outline:2px solid #fff}
+#ghost{display:none;border:2px dashed;pointer-events:none;z-index:5}
+#ghost.ok{background:#22c55e55;border-color:#22c55e}#ghost.bad{background:#ef444477;border-color:#ef4444}
+.leg span{display:inline-block;margin-right:10px;font-size:12px}.leg i{display:inline-block;width:10px;height:10px;margin-right:3px;border:1px solid #000}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid #334155;padding:4px 6px;text-align:left}th{background:#1e293b}
+.free{color:#22c55e;font-weight:700}
+dialog{background:#1e293b;color:#e5e7eb;border:1px solid #475569;border-radius:10px;width:min(380px,92vw)}
+dialog::backdrop{background:#0009}dialog label{display:block;margin:6px 0;font-size:12px;color:#94a3b8}
+dialog input,dialog select{width:100%;margin-top:2px}.btns{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+aside{width:230px}#libs{max-height:62vh;overflow:auto}#q{width:100%;margin-bottom:6px}
+details{margin:4px 0}summary{cursor:pointer;padding:5px 6px;background:#1e293b;border-radius:4px;font-weight:600;font-size:13px}
+summary small{color:#94a3b8;font-weight:400}.lib.sel{outline:2px solid #facc15}
+.add{float:right;color:#22c55e;padding:0 4px}.rm{float:right;color:#ef4444;padding:0 4px}
+#hint{display:none;margin:6px 0;padding:6px 8px;background:#854d0e;border-radius:6px}.tabs{margin-bottom:6px}
+#vCatv tr[data-c]{cursor:pointer}#vCatv tr[data-c]:hover{background:#1e293b}
+.p{touch-action:none}header button.on{background:#2563eb}
+.dev{flex-direction:row;align-items:stretch;gap:6px;overflow:visible}
+.dn{width:132px;flex:none;white-space:normal;line-height:11px;max-height:100%;overflow:hidden;align-self:center}.dev .dn:only-child{width:auto}
+.pg{margin:2px 0}.p{position:relative}
+.p.glow{z-index:3;box-shadow:0 0 0 2px var(--gc,#facc15),0 0 10px 4px var(--gc,#facc15);animation:pl .7s infinite alternate}
+.p.tgt{z-index:3;box-shadow:0 0 0 2px #fff,0 0 12px 5px var(--gc,#22d3ee)}
+.p.hl{z-index:3;box-shadow:0 0 0 2px #fff,0 0 10px 4px var(--gc,#fff)}
+@keyframes pl{to{box-shadow:0 0 0 2px var(--gc,#facc15),0 0 18px 8px var(--gc,#facc15)}}
+caption{text-align:left;font-weight:700;padding:12px 0 4px}td input,td select{width:100%;min-width:64px;padding:3px 5px;font-size:13px}td input.d{min-width:150px}td input.d::placeholder{color:#22c55e;font-weight:700;opacity:1}
+.dd{white-space:nowrap}.dd input{width:calc(100% - 34px)}.pk{padding:2px 6px}
+.lb{font-size:9px;color:#94a3b8;align-self:center;white-space:nowrap}.pin{flex:none;width:14px;height:14px;align-self:center;font-size:9px;line-height:14px;text-align:center;color:#000;font-style:normal;margin-left:4px}
+</style></head><body>
+<header>
+ <input id="name" placeholder="Nume proiect">
+ <select id="size" title="Dimensiune rack"></select>
+ <button id="fr" class="on">Față</button><button id="rr">Spate</button> <button id="cn">Conectare cablu</button><select id="cc"></select><button id="cs" class="on">Cabluri</button><button id="png">Imagine rack</button>
+ <button id="newp">Proiect nou</button>
+ <button id="xl" class="pri">Export Excel</button><button id="pf" class="pri">Export PDF</button>
+ <button id="sj">Salvează .json</button><button id="lj">Încarcă .json</button>
+ <input id="file" type="file" accept=".json" hidden>
+</header>
+<div class="wrap">
+ <aside><h4>Librărie</h4><input id="q" placeholder="Caută echipament...">
+  <small style="color:#94a3b8;display:block;margin-bottom:6px">Trage în rack, sau click pe echipament și apoi click pe U-ul dorit. ＋ = primul loc liber.</small>
+  <div id="libs"></div><button id="cust" style="width:100%;margin-top:6px">+ Echipament personalizat</button></aside>
+ <main>
+  <div class="tabs"><button id="t1" class="on">Rack</button> <button id="t2">Live Cable Matrix</button> <button id="t3">CATV</button></div>
+  <div id="power"></div><div id="hint"></div>
+  <div id="vRack">
+   <div class="leg"><span><i style="background:#22c55e"></i>Ocupat</span><span><i style="background:#9ca3af"></i>Liber</span><span><i style="background:#3b82f6"></i>Trunk</span><span><i style="background:#a855f7"></i>LACP</span><span><i style="background:#f59e0b"></i>Down</span><span><i style="background:#333"></i>Disabled</span></div>
+   <div id="rackbox"><div id="rack"></div></div>
+  </div>
+  <div id="vMat" style="display:none;overflow:auto"><div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0"><input id="mq" placeholder="Filtru echipament..." style="flex:1;min-width:140px"><button id="mo">Deschide tot</button><button id="mc">Închide tot</button></div>
+ <small style="color:#94a3b8">Editezi direct în tabel (se salvează automat). 🔌 = alege portul altui echipament. Destinație goală = LIBER.</small><div id="mbody"></div></div><div id="vCatv" style="display:none;overflow:auto"></div>
+ </main>
+</div>
+<dialog id="dlg"></dialog>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const COL={Switch:'#2563eb',Router:'#7c3aed',Firewall:'#dc2626','NVR/DVR':'#0d9488',Server:'#64748b','Patch Panel':'#b45309',UPS:'#15803d',PDU:'#be185d','Tavă':'#9ca3af','Blank Panel':'#4b5563',Organizator:'#6b7280',ODF:'#eab308',CATV:'#f97316'};
+const CABLE=['Albastru','Portocaliu','Galben','Verde','Roșu','Alb','Negru','Gri'];
+const LIB=[
+ {n:'Switch 24p',t:'Switch',u:1,p:24,w:40,pt:'RJ45'},{n:'Switch 48p PoE',t:'Switch',u:1,p:48,w:400,pt:'RJ45'},
+ {n:'Switch SFP 8p',t:'Switch',u:1,p:8,w:30,pt:'SFP'},{n:'Router',t:'Router',u:1,p:8,w:30,pt:'RJ45'},
+ {n:'Firewall',t:'Firewall',u:1,p:6,w:40,pt:'RJ45'},{n:'NVR 16 canale',t:'NVR/DVR',u:2,p:16,w:60,pt:'RJ45'},
+ {n:'Server',t:'Server',u:2,p:4,w:300,pt:'RJ45'},{n:'Patch Panel 24p',t:'Patch Panel',u:1,p:24,w:0,pt:'RJ45'},
+ {n:'UPS 1000W',t:'UPS',u:3,p:5,w:1000,pt:'Priză',ups:{ins:1,outs:4,grp:[]}},{n:'UPS 3000W (2 grupuri)',t:'UPS',u:3,p:7,w:3000,pt:'Priză',ups:{ins:1,outs:6,grp:[3,3]}},{n:'PDU 8 prize',t:'PDU',u:1,p:8,w:0,pt:'Priză'},
+ {n:'Tavă',t:'Tavă',u:1,p:0,w:0,pt:'RJ45'},{n:'Blank Panel',t:'Blank Panel',u:1,p:0,w:0,pt:'RJ45'},{n:'Organizator cabluri 1U',t:'Organizator',u:1,p:0,w:0,pt:'RJ45'},{n:'Organizator cabluri 2U',t:'Organizator',u:2,p:0,w:0,pt:'RJ45'},
+ {n:'ODF 12 fibre SC',t:'ODF',u:1,p:12,w:0,pt:'SC'},{n:'ODF 24 fibre LC',t:'ODF',u:1,p:24,w:0,pt:'LC'},{n:'ODF 48 fibre LC',t:'ODF',u:2,p:48,w:0,pt:'LC'},{n:'ODF 96 fibre LC',t:'ODF',u:4,p:96,w:0,pt:'LC'},
+ {n:'Amplificator CATV',t:'CATV',u:1,p:4,w:15,pt:'F'},{n:'Multiswitch 9x16',t:'CATV',u:1,p:16,w:20,pt:'F'},{n:'Modulator CATV',t:'CATV',u:1,p:4,w:25,pt:'F'}];
+let S=null;try{S=JSON.parse(localStorage.getItem('rackcfg'))}catch(e){}
+S=S||{name:'Proiect nou',rackU:42,devs:[],catv:[],links:[],nid:1};
+S.catv=S.catv||[];S.links=S.links||[];fixUps();let view='front',drag=null,tab=1;const H=26;
+const save=()=>{try{localStorage.setItem('rackcfg',JSON.stringify(S))}catch(e){}};
+
+const fits=(pos,u,id)=>pos>=1&&pos+u-1<=S.rackU&&!S.devs.some(d=>d.id!==id&&d.pos<=pos+u-1&&pos<=d.pos+d.u-1);
+const firstFree=u=>{for(let p=S.rackU-u+1;p>=1;p--)if(fits(p,u,-1))return p;return 0};
+function mk(t,pos){const d={id:S.nid++,name:t.n,type:t.t,u:t.u,pos,p:t.p,w:t.w,pt:t.pt||'RJ45',pd:{},ups:t.ups?JSON.parse(JSON.stringify(t.ups)):undefined};if(d.ups)d.pd[1]={dest:'220V',status:'Up'};return d}
+function add(t,pos){pos=pos||firstFree(t.u);if(!pos||!fits(pos,t.u,-1)){alert('Nu există spațiu liber de '+t.u+'U în rack.');return}S.devs.push(mk(t,pos));render()}
+
+function pc(d,n){const x=d.pd[n]||{};
+ if(x.status==='Disabled')return'#333';if(x.status==='Down')return'#f59e0b';
+ if(x.mode==='Trunk')return'#3b82f6';if(x.mode==='LACP')return'#a855f7';
+ return x.dest?'#22c55e':'#9ca3af'}
+
+function renderRack(){
+ let h='';for(let u=S.rackU;u>=1;u--)h+=`<div class="slot" style="height:${H}px">${u}</div>`;
+ S.devs.forEach(d=>{
+  let body='';
+  const showP=view==='front'||d.type==='UPS'||d.type==='PDU';
+  if(showP&&d.type==='UPS'&&d.ups){const u=d.ups,x1=d.pd[1]||{},port=n=>{const x=d.pd[n]||{};return `<i class="p" data-d="${d.id}" data-n="${n}" style="background:${pc(d,n)}" title="${esc(portLabel(d,n))}: ${esc(x.dest||'Liber')}"></i>`},
+   grp=(a,b)=>`<div class="pg" style="grid-template-columns:repeat(${b-a+1},14px);grid-template-rows:1fr;flex:none">`+Array.from({length:b-a+1},(_,i)=>port(a+i)).join('')+'</div>';
+   body=`<span class="lb">IN${x1.dest==='220V'?' 220V':''}</span>${grp(1,u.ins)}<span class="lb">OUT</span>`;let a=u.ins+1;const gs=u.grp&&u.grp.length?u.grp:[u.outs];
+   gs.forEach((c,gi)=>{body+=(u.grp&&u.grp.length?`<span class="lb">G${gi+1}</span>`:'')+grp(a,a+c-1);a+=c})}
+  else if(showP&&d.p>0){const rw=rowsOf(d),cols=Math.ceil(d.p/rw);
+   body=`<div class="pg" style="grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rw},1fr)">`;
+   for(let n=1;n<=d.p;n++){const x=d.pd[n]||{};body+=`<i class="p" data-d="${d.id}" data-n="${n}" style="background:${pc(d,n)}" title="${esc(portLabel(d,n))}: ${esc(x.dest||'Liber')}"></i>`}
+   body+='</div>'}
+  if(powered(d)){const x0=d.pd[0]||{};body+=`<i class="p pin" data-d="${d.id}" data-n="0" style="background:${pc(d,0)}" title="alimentare: ${esc(x0.dest||'Liber')}">⚡</i>`}
+  const extra=view==='rear'?` · ${d.w}W${d.type==='PDU'?' · '+d.p+' prize':''}`:'';
+  h+=`<div class="dev" draggable="${!conn.on}" data-id="${d.id}" style="top:${(S.rackU-d.pos-d.u+1)*H}px;height:${d.u*H-2}px;border-left-color:${COL[d.type]||'#888'}"><div class="dn">${esc(d.name)} <small>U${d.pos}${d.u>1?'-U'+(d.pos+d.u-1):''}${extra}</small></div>${body}</div>`});
+ h+='<div id="ghost"></div><svg id="cab" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:4"></svg>';$('rack').innerHTML=h;drawCables()}
+
+function renderPower(){
+ const use=S.devs.filter(d=>d.type!=='UPS').reduce((a,d)=>a+d.w,0),ups=S.devs.filter(d=>d.type==='UPS').reduce((a,d)=>a+d.w,0);
+ let msg=`Consum total: <b>${use} W</b> (≈ ${Math.round(use*3.412)} BTU/h)`;
+ if(ups){const pc=Math.round(use/ups*100),c=pc>100?'#ef4444':pc>80?'#f59e0b':'#22c55e';
+  msg+=` · UPS: ${ups} W · încărcare <b style="color:${c}">${pc}%</b>${pc>100?' – SUPRASOLICITAT':pc>80?' – aproape de limită':' – OK'}`}
+ else msg+=' · niciun UPS în rack';
+ $('power').innerHTML=msg}
+
+const HEAD=['Echipament','Slot rack','Port','Tip port','VLAN','Destinație','Locație','Status','Cablu','Detalii'];
+function rows(list){const r=[];[...(list||S.devs)].sort((a,b)=>b.pos-a.pos).forEach(d=>{const fib=d.type==='ODF'||d.pt==='SC'||d.pt==='LC',pp=['Patch Panel','UPS','PDU'].includes(d.type);
+ for(let n=powered(d)?0:1;n<=d.p;n++){const x=d.pd[n]||{},z=n===0;
+ const v=pp||z?'':x.mode&&x.mode!=='Access'?x.mode+(x.vlan?' '+x.vlan:''):(x.vlan||'');
+ const det=fib?[x.fib&&x.fib.split(' ')[0],x.att&&x.att+' dB'].filter(Boolean).join(' · '):d.pt==='F'&&x.att?x.att+' dBµV':'';
+ r.push([d.name,'U'+d.pos+(d.u>1?'-U'+(d.pos+d.u-1):''),z?'Alimentare':d.type==='UPS'?portLabel(d,n):n,z?'Alimentare':d.pt,v,x.dest||'LIBER',x.loc||'',pp||z?'':x.dest?(x.status||'Up'):'-',x.dest?(x.color||''):'',x.dest&&!z?det:''])}});return r}
+const MO=new Set();
+function renderMat(){let h='';const q=$('mq').value.toLowerCase();
+ [...S.devs].filter(d=>(d.p>0||powered(d))&&(!q||(d.name+' '+d.type).toLowerCase().includes(q))).sort((a,b)=>b.pos-a.pos).forEach(d=>{
+  const fib=d.type==='ODF'||d.pt==='SC'||d.pt==='LC',rf=d.pt==='F',pp=d.type==='Patch Panel',pw=d.type==='UPS'||d.type==='PDU',sw=!fib&&!rf&&!pp&&!pw;
+  const cols=['port',...(sw?['mode','vlan']:[]),'dest','loc',...(pp||pw?[]:['status']),'color',...(fib||rf?['att']:[])];
+  const HH={port:'Port',mode:'Mod',vlan:'VLAN',dest:'Destinație',loc:'Locație',status:'Status',color:'Cablu',att:fib?'Atenuare dB':'Nivel dBµV'};
+  const at=(n,f)=>`data-d="${d.id}" data-n="${n}" data-f="${f}"`;
+  const sl=(n,f,v,o)=>{if(v&&!o.includes(v))o=[...o,v];return `<select ${at(n,f)}>${o.map(x=>`<option value="${x}"${x===v?' selected':''}>${x||'—'}</option>`).join('')}</select>`};
+  const used=Object.entries(d.pd).filter(([k,x])=>k>0&&x.dest).length;
+  h+=`<details data-i="${d.id}"${MO.has(d.id)?' open':''}><summary>${esc(d.name)} <small>· ${d.type} · U${d.pos}${d.u>1?'-U'+(d.pos+d.u-1):''} · ${used}/${d.p} porturi ocupate</small></summary><table><tr>${cols.map(k=>`<th>${HH[k]}</th>`).join('')}</tr>`;
+  for(let n=powered(d)?0:1;n<=d.p;n++){const x=d.pd[n]||{};
+   h+='<tr>'+cols.map(k=>k==='port'?`<td>${n===0?'Alimentare':d.type==='UPS'?portLabel(d,n):n}</td>`:n===0&&['mode','vlan','status','att'].includes(k)?'<td></td>':k==='mode'?`<td>${sl(n,k,x.mode||'Access',['Access','Trunk','LACP'])}</td>`:k==='status'?`<td>${sl(n,k,x.status||'Up',['Up','Down','Disabled'])}</td>`:k==='color'?`<td>${sl(n,k,x.color||'',['',...Object.keys(CAB)])}</td>`:
+    k==='dest'?`<td class="dd"><input class="d" ${at(n,k)} value="${esc(x.dest||'')}" placeholder="LIBER"><button class="pk" data-d="${d.id}" data-n="${n}" title="Alege port din alt echipament">🔌</button></td>`:
+    `<td><input ${at(n,k)} value="${esc(x[k]||'')}"></td>`).join('')+'</tr>'}
+  h+='</table></details>'});
+ $('mbody').innerHTML=h||'<p style="color:#94a3b8">Niciun echipament.</p>'}
+$('mbody').addEventListener('toggle',e=>{const id=+e.target.dataset.i;if(id)e.target.open?MO.add(id):MO.delete(id)},true);
+$('mq').oninput=renderMat;
+$('mo').onclick=()=>{document.querySelectorAll('#mbody details').forEach(x=>MO.add(+x.dataset.i));renderMat()};
+$('mc').onclick=()=>{MO.clear();renderMat()};
+$('vMat').onclick=e=>{const b=e.target.closest('.pk');if(b)pickPort(S.devs.find(x=>x.id==b.dataset.d),+b.dataset.n)};
+function pickPort(d,n){const L=linkOf(d.id,n),cand=S.devs.filter(x=>x.p>0||powered(x));
+ dlg(`${esc(d.name)} – ${portLabel(d,n)}: conectează la…`,(L?`<p>🔗 Acum: <b>${esc(L.o.name)}</b> – ${portLabel(L.o,L.m)}</p>`:'')+
+  `<label>Filtru echipament<input id="pk_q" placeholder="scrie numele sau tipul..."></label><label>Echipament<select id="pk_d"></select></label><label>Port<select id="pk_p"></select></label>`+sel('Culoare cablu','pk_c',CABLE,$('cc').value),
+  ()=>{const o=S.devs.find(x=>x.id==+$('pk_d').value),m=+$('pk_p').value;if(!o||$('pk_p').value==='')return false;if(o.id===d.id&&m===n){alert('Alege alt port.');return false}
+   $('cc').value=$('pk_c').value;connect([d.id,n],[o.id,m])},L?'<button id="dc">Deconectează</button>':'');
+ const fillP=()=>{const o=S.devs.find(x=>x.id==+$('pk_d').value);$('pk_p').innerHTML=o?Array.from({length:o.p+1},(_,i)=>i).filter(k=>k>0||powered(o)).map(k=>{const lk=linkOf(o.id,k),x=o.pd[k]||{};
+   return `<option value="${k}">${portLabel(o,k)} — ${lk||x.dest?'ocupat: '+esc(x.dest||lk.o.name):'liber'}</option>`}).join(''):''};
+ const fillD=()=>{const q=$('pk_q').value.toLowerCase();$('pk_d').innerHTML=cand.filter(x=>!q||(x.name+' '+x.type).toLowerCase().includes(q)).map(x=>`<option value="${x.id}">${esc(x.name)} (${x.type}, U${x.pos})</option>`).join('');fillP()};
+ $('pk_q').oninput=fillD;$('pk_d').onchange=fillP;fillD();
+ if(L){$('pk_d').value=L.o.id;fillP();$('pk_p').value=L.m;$('dc').onclick=()=>{unlink(d.id,n);$('dlg').close();render()}}}
+$('vMat').onchange=e=>{const t=e.target,f=t.dataset.f;if(!f)return;const d=S.devs.find(x=>x.id==t.dataset.d),n=+t.dataset.n,x=d.pd[n]=d.pd[n]||{};
+ x[f]=t.value.trim();if(f==='dest')x.auto=false;save();renderRack();renderPower()};
+
+function render(){save();renderRack();renderPower();$('name').value=S.name;$('size').value=S.rackU;if(tab===2)renderMat();if(tab===3)renderCatv()}
+
+/* dialoguri */
+const fld=(l,id,v,t='text')=>`<label>${l}<input id="${id}" type="${t}" value="${esc(v)}"></label>`;
+const sel=(l,id,o,v)=>`<label>${l}<select id="${id}">${o.map(x=>`<option${x==v?' selected':''}>${x}</option>`).join('')}</select></label>`;
+function dlg(title,body,ok,extra){const D=$('dlg');
+ D.innerHTML=`<h3>${title}</h3>${body}<div class="btns">${extra||''}<button id="x">Anulează</button><button id="ok" class="pri">Salvează</button></div>`;
+ D.style.width='';D.style.maxHeight='90vh';D.showModal();$('x').onclick=()=>D.close();$('ok').onclick=()=>{if(ok()!==false)D.close()}}
+function devModal(d,isNew){const u0=d.ups||{ins:1,outs:4,grp:[]};
+ const rd=()=>{if($('f_t').value!=='UPS')return null;return{ins:Math.max(1,+$('f_ins').value|0),outs:Math.max(1,+$('f_outs').value|0),grp:$('f_grp').value.split(',').map(x=>+x|0).filter(x=>x>0)}};
+ dlg(isNew?'Echipament nou':'Editează echipament',
+  fld('Nume / etichetă','f_n',d.name)+sel('Tip','f_t',Object.keys(COL),d.type)+fld('Dimensiune (U)','f_u',d.u,'number')+fld('Poziție (U de jos)','f_pos',d.pos,'number')+
+  '<div id="f_std">'+fld('Număr porturi','f_p',d.p,'number')+sel('Tip port','f_pt',['RJ45','SFP','Priză','SC','LC','F'],d.pt)+'</div>'+
+  '<div id="f_ups">'+fld('Număr intrări','f_ins',u0.ins,'number')+fld('Număr ieșiri','f_outs',u0.outs,'number')+fld('Grupuri ieșiri (ex. 2,2 = două grupuri de câte 2 ieșiri; gol = fără grupuri)','f_grp',(u0.grp||[]).join(','))+'</div>'+
+  fld('Consum W (la UPS: capacitate W)','f_w',d.w,'number'),
+  ()=>{const u=Math.max(1,+$('f_u').value|0),pos=+$('f_pos').value|0,ups=rd();
+   if(!fits(pos,u,d.id)){alert('Nu e loc: spațiul este ocupat sau depășește rack-ul.');return false}
+   if(ups&&ups.grp.length&&ups.grp.reduce((a,b)=>a+b,0)!==ups.outs){alert('Suma grupurilor trebuie să fie egală cu numărul de ieșiri ('+ups.outs+').');return false}
+   Object.assign(d,{name:$('f_n').value||'Echipament',type:$('f_t').value,u,pos,p:ups?ups.ins+ups.outs:Math.max(0,+$('f_p').value|0),pt:ups?'Priză':$('f_pt').value,w:+$('f_w').value||0,ups:ups||undefined});
+   if(isNew)S.devs.push(d);
+   if(d.ups&&!d.pd[1])d.pd[1]={dest:'220V',status:'Up'};S.links=S.links.filter(l=>[l.a,l.b].every(([i,n])=>{const x=S.devs.find(z=>z.id==i);return x&&n<=x.p}));render()},
+  (isNew?'':'<button id="del" class="red">Șterge</button>')+'<button id="tpl">Șablon</button>');
+ const tg=()=>{const u=$('f_t').value==='UPS';$('f_ups').style.display=u?'':'none';$('f_std').style.display=u?'none':''};$('f_t').onchange=tg;tg();
+ if(!isNew)$('del').onclick=()=>{S.links=S.links.filter(l=>l.a[0]!==d.id&&l.b[0]!==d.id);S.devs=S.devs.filter(x=>x!==d);$('dlg').close();render()};
+ $('tpl').onclick=()=>{const ups=rd();USR.push({n:$('f_n').value||'Șablon',t:$('f_t').value,u:Math.max(1,+$('f_u').value|0),p:ups?ups.ins+ups.outs:Math.max(0,+$('f_p').value|0),w:+$('f_w').value||0,pt:ups?'Priză':$('f_pt').value,ups:ups||undefined});try{localStorage.setItem('racktpl',JSON.stringify(USR))}catch(e){}renderLib();$('tpl').textContent='Salvat ✓'}}
+function portModal(d,n){const x=d.pd[n]||{},L=linkOf(d.id,n),info=L?`<p>🔗 Conectat la <b>${esc(L.o.name)}</b> – ${portLabel(L.o,L.m)} <small>(${L.o.type})</small></p>`:'',fib=n>0&&(d.type==='ODF'||d.pt==='SC'||d.pt==='LC'),rf=n>0&&d.pt==='F',pp=d.type==='Patch Panel',pw=n===0||d.type==='UPS'||d.type==='PDU';
+ const FC=['Albastru','Portocaliu','Verde','Maro','Gri','Alb','Roșu','Negru','Galben','Violet','Roz','Turcoaz'];
+ const body=info+fld('Destinație / conexiune','q_d',x.dest||'')+fld('Locație (cameră / etaj, ex. Camera 211)','q_l',x.loc||'')+(pp||pw?'':sel('Status','q_s',['Up','Down','Disabled'],x.status||'Up'))+
+  (fib?sel('Tip fibră','q_f',['SM (monomod)','MM (multimod)'],x.fib||'SM (monomod)')+sel('Culoare fibră','q_c',FC,x.color||FC[(n-1)%12])+fld('Atenuare măsurată (dB)','q_a',x.att||'','number')
+  :rf?fld('Nivel semnal (dBµV)','q_a',x.att||'','number')+sel('Culoare cablu','q_c',CABLE,x.color||'Albastru')
+  :pp||pw?sel('Culoare cablu','q_c',CABLE,x.color||'Albastru')
+  :sel('Mod','q_m',['Access','Trunk','LACP'],x.mode||'Access')+fld('VLAN (ex. 10 sau 10,20,30)','q_v',x.vlan||'')+sel('Culoare cablu','q_c',CABLE,x.color||'Albastru'));
+ dlg(`${esc(d.name)} – ${fib?'fibra '+n:portLabel(d,n)}`,body,
+  ()=>{const g=i=>$(i)?$(i).value.trim():'';d.pd[n]={auto:x.auto&&g('q_d')===x.dest,dest:g('q_d'),loc:g('q_l'),status:g('q_s'),mode:g('q_m')||'Access',vlan:g('q_v'),color:g('q_c'),fib:g('q_f'),att:g('q_a')};render()},
+  (L?'<button id="dc">Deconectează</button>':'')+'<button id="del" class="red">Eliberează</button>');
+ if(L)$('dc').onclick=()=>{unlink(d.id,n);$('dlg').close();render()};
+ $('del').onclick=()=>{unlink(d.id,n);delete d.pd[n];$('dlg').close();render()}}
+
+/* evenimente rack */
+const R=$('rack');
+R.onclick=e=>{if(conn.on&&e.target.closest('.p'))return;if(pick){placePick(e);return}const p=e.target.closest('.p'),dv=e.target.closest('.dev');
+ if(p)portModal(S.devs.find(d=>d.id==p.dataset.d),+p.dataset.n);else if(dv)devModal(S.devs.find(d=>d.id==dv.dataset.id),false)};
+R.ondragstart=e=>{const dv=e.target.closest('.dev');if(dv){drag={dev:S.devs.find(d=>d.id==dv.dataset.id)};e.dataTransfer.setData('text','x')}};
+function target(e){if(!drag)return null;const u=drag.dev?drag.dev.u:drag.t.u,y=e.clientY-R.getBoundingClientRect().top-3;
+ const top=S.rackU-Math.floor(y/H);return{pos:top-u+1,u}}
+R.ondragover=e=>{const t=target(e);if(!t)return;e.preventDefault();const g=$('ghost');
+ g.style.display='block';g.style.top=(S.rackU-t.pos-t.u+1)*H+'px';g.style.height=t.u*H-2+'px';
+ g.className=fits(t.pos,t.u,drag.dev?drag.dev.id:-1)?'ok':'bad'};
+R.ondrop=e=>{e.preventDefault();const t=target(e);if(!t)return;
+ if(!fits(t.pos,t.u,drag.dev?drag.dev.id:-1)){const g=$('ghost');g.className='bad';alert('Spațiu insuficient: echipamentul de '+t.u+'U nu încape aici.');drag=null;renderRack();return}
+ if(drag.dev)drag.dev.pos=t.pos;else S.devs.push(mk(drag.t,t.pos));drag=null;render()};
+document.ondragend=()=>{drag=null;const g=$('ghost');if(g)g.style.display='none'};
+
+/* librărie */
+let USR=[],pick=null;try{USR=JSON.parse(localStorage.getItem('racktpl'))||[]}catch(e){}
+const GRP={Switch:'Rețea',Router:'Rețea',Firewall:'Rețea','NVR/DVR':'Servere & înregistrare',Server:'Servere & înregistrare','Patch Panel':'Pasive (cupru)',ODF:'Fibră optică (ODF)','Tavă':'Pasive (cupru)','Blank Panel':'Pasive (cupru)',Organizator:'Pasive (cupru)',UPS:'Alimentare',PDU:'Alimentare',CATV:'CATV'};
+const OG=new Set(['Rețea']),ALL=()=>[...LIB,...USR];
+function renderLib(){const q=$('q').value.toLowerCase(),g={};
+ ALL().forEach((t,i)=>{if(q&&!(t.n+t.t).toLowerCase().includes(q))return;const k=i>=LIB.length?'Șabloanele mele':(GRP[t.t]||'Altele');(g[k]=g[k]||[]).push([t,i])});
+ $('libs').innerHTML=Object.keys(g).map(k=>`<details data-k="${k}"${q||OG.has(k)?' open':''}><summary>${k} <small>(${g[k].length})</small></summary>`+g[k].map(([t,i])=>`<div class="lib${pick===t?' sel':''}" draggable="true" data-i="${i}" style="border-left-color:${COL[t.t]}">${esc(t.n)} <small>${t.u}U${t.ups?' · '+t.ups.ins+' intr./'+t.ups.outs+' ieș.':t.p?' · '+t.p+(t.pt==='Priză'?' prize':t.pt==='SC'||t.pt==='LC'?' fibre':'p'):''}</small>${i>=LIB.length?'<b class="rm" title="Șterge șablon">×</b>':''}<b class="add" title="Adaugă în primul loc liber">＋</b></div>`).join('')+'</details>').join('')||'<small>Niciun rezultat</small>'}
+$('libs').addEventListener('toggle',e=>{if(!$('q').value){e.target.open?OG.add(e.target.dataset.k):OG.delete(e.target.dataset.k)}},true);
+function setPick(t){pick=t;const h=$('hint');
+ if(t){h.style.display='block';h.innerHTML=`Plasează <b>${esc(t.n)}</b> (${t.u}U): click pe U-ul dorit în rack (U-ul ales = partea de sus a echipamentului). <button id="done">Gata</button>`;$('done').onclick=()=>setPick(null)}
+ else{h.style.display='none';drag=null;const g=$('ghost');if(g)g.style.display='none'}renderLib()}
+document.onkeydown=e=>{if(e.key==='Escape')setPick(null)};
+function placePick(e){drag={t:pick};const t=target(e);if(!t)return;
+ if(!fits(t.pos,t.u,-1)){alert('Nu încape aici: spațiu ocupat sau în afara rack-ului.');return}S.devs.push(mk(pick,t.pos));render()}
+R.onmousemove=e=>{if(pick){drag={t:pick};R.ondragover(e)}};
+$('libs').ondragstart=e=>{const el=e.target.closest('.lib');if(el){pick=null;$('hint').style.display='none';drag={t:ALL()[el.dataset.i]};e.dataTransfer.setData('text','x')}};
+$('libs').onclick=e=>{const el=e.target.closest('.lib');if(!el)return;const i=+el.dataset.i,t=ALL()[i];
+ if(e.target.classList.contains('rm')){USR.splice(i-LIB.length,1);try{localStorage.setItem('racktpl',JSON.stringify(USR))}catch(x){}renderLib();return}
+ if(e.target.classList.contains('add')){add(t);return}setPick(pick===t?null:t)};
+$('q').oninput=renderLib;
+$('cust').onclick=()=>devModal({id:S.nid++,name:'Echipament nou',type:'Switch',u:1,pos:firstFree(1)||1,p:24,w:50,pt:'RJ45',pd:{}},true);
+renderLib();
+
+/* CATV */
+const CT={'Splitter 2 căi':[2,-3.5],'Splitter 3 căi':[3,-5.5],'Splitter 4 căi':[4,-7.5],'Splitter 6 căi':[6,-9.5],'Splitter 8 căi':[8,-11],'Tap / Derivator':[2,-12],'Amplificator':[2,20],'Multiswitch':[8,0],'Priză TV':[1,0],'Headend / Receptor':[1,0]};
+const CH=['Echipament','Tip','Locație','Alimentat de','Ieșire','Destinație','Nivel','Cablu'];
+function catvRows(){const r=[];S.catv.forEach(c=>{for(let k=1;k<=c.n;k++){const x=c.out[k]||{};r.push([c.name,c.type+(c.gain?' ('+(c.gain>0?'+':'')+c.gain+' dB)':''),c.loc,c.feed,k,x.dest||'LIBER',x.lvl?x.lvl+' dBµV':'',x.cab||c.cable])}});return r}
+function renderCatv(){let h='<p><button id="ca" class="pri">+ Echipament CATV</button> <small style="color:#94a3b8">Click pe rând = editează ieșirea · ✎ = editează echipamentul</small></p><table><tr>'+CH.map(x=>`<th>${x}</th>`).join('')+'</tr>';
+ S.catv.forEach(c=>{catvRows().filter(r=>r[0]===c.name).length;for(let k=1;k<=c.n;k++){const x=c.out[k]||{};
+  const cells=[(k==1?`<button data-e="${c.id}">✎</button> `:'')+esc(c.name),esc(c.type+(c.gain?' ('+(c.gain>0?'+':'')+c.gain+' dB)':'')),esc(c.loc),esc(c.feed),k,x.dest?esc(x.dest):'<span class="free">LIBER</span>',x.lvl?x.lvl+' dBµV':'',esc(x.cab||c.cable)];
+  h+=`<tr data-c="${c.id}" data-k="${k}">`+cells.map(v=>`<td>${v}</td>`).join('')+'</tr>'}});
+ $('vCatv').innerHTML=h+'</table>'}
+function catvModal(c,isNew){
+ dlg(isNew?'Echipament CATV nou':'Editează echipament CATV',fld('Nume','c_n',c.name)+sel('Tip','c_t',Object.keys(CT),c.type)+fld('Locație (etaj / cameră)','c_l',c.loc)+fld('Alimentat de (ex. Antenă, Splitter 1 ieșirea 2)','c_f',c.feed)+fld('Număr ieșiri','c_o',c.n,'number')+fld('Câștig (+) / pierdere (−) dB','c_g',c.gain,'number')+sel('Cablu implicit','c_c',['RG6','RG11','RG59'],c.cable),
+  ()=>{Object.assign(c,{name:$('c_n').value||'CATV',type:$('c_t').value,loc:$('c_l').value,feed:$('c_f').value,n:Math.max(1,+$('c_o').value|0),gain:+$('c_g').value||0,cable:$('c_c').value});if(isNew)S.catv.push(c);render()},
+  isNew?'':'<button id="del" class="red">Șterge</button>');
+ if(isNew)$('c_t').onchange=()=>{const v=CT[$('c_t').value];$('c_o').value=v[0];$('c_g').value=v[1]};
+ else $('del').onclick=()=>{S.catv=S.catv.filter(x=>x!==c);$('dlg').close();render()}}
+function outModal(c,k){const x=c.out[k]||{};
+ dlg(`${esc(c.name)} – ieșirea ${k}`,fld('Destinație (apartament / cameră / priză)','o_d',x.dest||'')+fld('Nivel semnal măsurat (dBµV)','o_l',x.lvl||'','number')+sel('Cablu','o_c',['RG6','RG11','RG59'],x.cab||c.cable),
+  ()=>{c.out[k]={dest:$('o_d').value.trim(),lvl:$('o_l').value,cab:$('o_c').value};render()},'<button id="del" class="red">Eliberează</button>');
+ $('del').onclick=()=>{delete c.out[k];$('dlg').close();render()}}
+$('vCatv').onclick=e=>{const b=e.target.closest('[data-e]');
+ if(b){catvModal(S.catv.find(c=>c.id==b.dataset.e),false);return}
+ if(e.target.id==='ca'){catvModal({id:S.nid++,name:'Echipament CATV',type:'Splitter 4 căi',loc:'',feed:'',n:4,gain:-7.5,cable:'RG6',out:{}},true);return}
+ const tr=e.target.closest('tr[data-c]');if(tr)outModal(S.catv.find(c=>c.id==tr.dataset.c),+tr.dataset.k)};
+
+/* antet */
+$('size').innerHTML=[4,6,9,12,15,18,22,24,27,32,42,45,48].map(u=>`<option value="${u}">${u}U</option>`).join('');
+$('size').onchange=e=>{const n=+e.target.value;if(S.devs.some(d=>d.pos+d.u-1>n)){alert('Există echipamente deasupra noii dimensiuni. Mută-le mai întâi.');e.target.value=S.rackU;return}S.rackU=n;render()};
+$('name').oninput=e=>{S.name=e.target.value;save()};
+$('fr').onclick=()=>{view='front';$('fr').className='on';$('rr').className='';renderRack()};
+$('rr').onclick=()=>{view='rear';$('rr').className='on';$('fr').className='';renderRack()};
+function showTab(n){tab=n;['vRack','vMat','vCatv'].forEach((v,i)=>$(v).style.display=i+1===n?'':'none');[1,2,3].forEach(i=>$('t'+i).className=i===n?'on':'');$('power').style.display=n===1?'':'none';if(n===2)renderMat();if(n===3)renderCatv()}
+[1,2,3].forEach(i=>$('t'+i).onclick=()=>showTab(i));
+$('newp').onclick=()=>{if(confirm('Ștergi proiectul curent și începi unul nou?')){S={name:'Proiect nou',rackU:+$('size').value,devs:[],catv:[],links:[],nid:1};render()}};
+$('sj').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download=(S.name||'rack')+'.json';a.click()};
+$('lj').onclick=()=>$('file').click();
+$('file').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const o=JSON.parse(t);if(!o.devs||!o.rackU)throw 0;S=o;S.catv=S.catv||[];S.links=S.links||[];fixUps();render()}catch(x){alert('Fișier invalid.')}});e.target.value=''};
+
+/* cabluri */
+const CAB={Albastru:'#2563eb',Portocaliu:'#f97316',Galben:'#facc15',Verde:'#16a34a','Roșu':'#dc2626',Alb:'#f3f4f6',Negru:'#111827',Gri:'#9ca3af',Maro:'#92400e',Violet:'#7c3aed',Roz:'#ec4899',Turcoaz:'#14b8a6'};
+let conn={on:false,a:null,from:null,moved:false},showCab=true;
+$('cc').innerHTML=CABLE.map(x=>`<option>${x}</option>`).join('');
+const linkOf=(id,n)=>{const l=S.links.find(l=>(l.a[0]==id&&l.a[1]==n)||(l.b[0]==id&&l.b[1]==n));if(!l)return null;
+ const o=l.a[0]==id&&l.a[1]==n?l.b:l.a,od=S.devs.find(d=>d.id==o[0]);return od?{l,o:od,m:o[1]}:null};
+function unlink(id,n){const L=linkOf(id,n);if(!L)return;S.links=S.links.filter(x=>x!==L.l);
+ [[id,n],[L.o.id,L.m]].forEach(([i,k])=>{const d=S.devs.find(x=>x.id==i),x=d&&d.pd[k];if(x&&x.auto){delete x.dest;delete x.auto;if(d.type==='UPS'&&k===1)x.dest='220V'}})}
+function connect(a,b){if(a[0]===b[0]&&a[1]===b[1])return;unlink(a[0],a[1]);unlink(b[0],b[1]);const col=$('cc').value;S.links.push({a,b,c:col});
+ [[a,b],[b,a]].forEach(([p,q])=>{const d=S.devs.find(x=>x.id==p[0]),o=S.devs.find(x=>x.id==q[0]),old=d.pd[p[1]]||{};
+  d.pd[p[1]]={...old,dest:o.name+' – '+portLabel(o,q[1]),auto:true,color:col,status:old.status||'Up'}});render()}
+const cen=(id,n)=>{const el=R.querySelector(`.p[data-d="${id}"][data-n="${n}"]`);if(!el)return null;const r=el.getBoundingClientRect(),b=R.getBoundingClientRect();return[r.left+r.width/2-b.left-R.clientLeft,r.top+r.height/2-b.top-R.clientTop]};
+const POW0=['Patch Panel','ODF','Tavă','Blank Panel','Organizator','UPS'];
+const powered=d=>!POW0.includes(d.type);
+function fixUps(){S.devs.forEach(d=>{if(d.type==='UPS'&&!d.ups){d.ups={ins:1,outs:4,grp:[]};d.p=5;d.pt='Priză'}if(d.type==='UPS'&&d.ups&&!d.pd[1])d.pd[1]={dest:'220V',status:'Up'}})}
+function portLabel(d,n){if(n===0)return'alimentare';
+ if(d.type==='UPS'&&d.ups){const u=d.ups;if(n<=u.ins)return'intrare '+n+(n===1?' (220V)':'');const j=n-u.ins;let a=0;
+  if(u.grp&&u.grp.length)for(let g=0;g<u.grp.length;g++){if(j<=a+u.grp[g])return`grup ${g+1} ieșirea ${j-a}`;a+=u.grp[g]}return'ieșirea '+j}
+ return(d.pt==='Priză'?'priza ':'port ')+n}
+const rowsOf=d=>Math.max(1,Math.min(2*d.u,Math.ceil(d.p/12))),upOf=(d,n)=>{const r=rowsOf(d);return r>1&&(n-1)%r<r/2};
+const gc=()=>CAB[$('cc').value]||'#2563eb',pEl=(id,n)=>R.querySelector(`.p[data-d="${id}"][data-n="${n}"]`);
+function clearHl(){R.querySelectorAll('.hl,.tgt').forEach(x=>x.classList.remove('hl','tgt'));const h=$('hv');if(h)h.remove()}
+function drawCables(){const s=$('cab');if(!s)return;let h='';R.querySelectorAll('.p.glow').forEach(x=>x.classList.remove('glow'));
+ if(showCab)S.links.forEach(l=>[l.a,l.b].forEach(([id,n])=>{
+  const d=S.devs.find(x=>x.id==id),pe=pEl(id,n);if(!d||!pe)return;
+  const rb=R.getBoundingClientRect(),pr=pe.getBoundingClientRect(),dr=pe.closest('.dev').getBoundingClientRect(),up=upOf(d,n),
+   org=S.devs.find(o=>o.type==='Organizator'&&(up?o.pos===d.pos+d.u:o.pos+o.u===d.pos)),ox=rb.left+R.clientLeft,oy=rb.top+R.clientTop;
+  let y2=up?dr.top:dr.bottom;if(org){const oe=R.querySelector(`.dev[data-id="${org.id}"]`);if(oe){const q=oe.getBoundingClientRect();y2=(q.top+q.bottom)/2}}
+  const x=pr.left+pr.width/2-ox,y1=pr.top+pr.height/2-oy,c=CAB[l.c]||'#2563eb';y2-=oy;
+  h+=`<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="${c}" stroke-width="1.6" stroke-linecap="round"/><circle cx="${x}" cy="${y2}" r="1.8" fill="${c}"/>`}));
+ s.innerHTML=h;if(conn.a){const e=pEl(...conn.a);if(e){e.style.setProperty('--gc',gc());e.classList.add('glow')}}}
+const pid=el=>[+el.dataset.d,+el.dataset.n];
+R.addEventListener('pointerdown',e=>{if(!conn.on)return;const p=e.target.closest('.p');if(!p)return;e.preventDefault();const me=pid(p);
+ if(conn.a&&conn.a.join()!==me.join()){connect(conn.a,me);conn.a=null;conn.from=null;return}
+ conn.from=me;conn.moved=false;p.style.setProperty('--gc',gc());p.classList.add('glow')});
+document.addEventListener('pointermove',e=>{if(!conn.from)return;conn.moved=true;const s=$('cab'),a=cen(...conn.from);if(!s||!a)return;
+ let l=$('tmp');if(!l){l=document.createElementNS('http://www.w3.org/2000/svg','line');l.id='tmp';l.setAttribute('stroke',gc());l.setAttribute('stroke-width',1.6);l.setAttribute('style',`filter:drop-shadow(0 0 4px ${gc()})`);s.appendChild(l)}
+ const b=R.getBoundingClientRect();l.setAttribute('x1',a[0]);l.setAttribute('y1',a[1]);l.setAttribute('x2',e.clientX-b.left-R.clientLeft);l.setAttribute('y2',e.clientY-b.top-R.clientTop);
+ R.querySelectorAll('.tgt').forEach(x=>x.classList.remove('tgt'));const t=document.elementFromPoint(e.clientX,e.clientY),p=t&&t.closest&&t.closest('.p');
+ if(p&&pid(p).join()!==conn.from.join()){p.style.setProperty('--gc',gc());p.classList.add('tgt')}});
+document.addEventListener('pointerup',e=>{if(!conn.from)return;const from=conn.from,t=document.elementFromPoint(e.clientX,e.clientY),p=t&&t.closest&&t.closest('.p');conn.from=null;
+ const l=$('tmp');if(l)l.remove();R.querySelectorAll('.tgt,.glow').forEach(x=>x.classList.remove('tgt','glow'));
+ if(p&&pid(p).join()!==from.join()){conn.a=null;connect(from,pid(p))}else{conn.a=conn.moved?null:from;drawCables()}});
+R.addEventListener('mouseover',e=>{clearHl();const p=e.target.closest&&e.target.closest('.p');if(!p)return;const me=pid(p);
+ if(conn.on){const s=conn.from||conn.a;if(s&&s.join()!==me.join()){p.style.setProperty('--gc',gc());p.classList.add('tgt')}return}
+ const L=linkOf(...me);if(!L)return;const q=pEl(L.o.id,L.m),a=cen(...me),b=cen(L.o.id,L.m);if(!q||!a||!b)return;const c=CAB[L.l.c]||'#fff';
+ p.style.setProperty('--gc',c);q.style.setProperty('--gc',c);p.classList.add('hl');q.classList.add('hl');
+ $('cab').insertAdjacentHTML('beforeend',`<path id="hv" d="M${a} C6,${a[1]} 6,${b[1]} ${b}" fill="none" stroke="${c}" stroke-width="1.4" style="filter:drop-shadow(0 0 4px ${c})"/>`)});
+R.addEventListener('mouseleave',clearHl);
+$('cn').onclick=()=>{conn.on=!conn.on;conn.a=null;$('cn').className=conn.on?'on':'';if(conn.on){setPick(null);const h=$('hint');h.style.display='block';h.innerHTML='Conectare cablu: trage de la un port la altul sau click pe primul port și apoi pe al doilea. Alege culoarea cablului din listă.'}else $('hint').style.display='none';renderRack()};
+$('cs').onclick=()=>{showCab=!showCab;$('cs').className=showCab?'on':'';drawCables()};
+function rackCanvas(cab=true){
+ const U=44,W=820,X0=90,X1=W-90,T=44,Hc=T+S.rackU*U+24,c=document.createElement('canvas');c.width=W;c.height=Hc;const g=c.getContext('2d');
+ g.fillStyle='#fff';g.fillRect(0,0,W,Hc);g.fillStyle='#111';g.font='bold 22px sans-serif';g.fillText(S.name,12,30);
+ g.fillStyle='#0b0f19';g.fillRect(X0-18,T-6,X1-X0+36,S.rackU*U+12);g.fillStyle='#1c1c1c';g.fillRect(X0-18,T-6,18,S.rackU*U+12);g.fillRect(X1,T-6,18,S.rackU*U+12);
+ for(let u=S.rackU;u>=1;u--){const y=T+(S.rackU-u)*U;g.fillStyle='#555';g.font='11px sans-serif';g.fillText(u,X0-50,y+U/2+4);
+  g.fillStyle='#888';[X0-9,X1+9].forEach(x=>{g.beginPath();g.arc(x,y+U/2,3,0,7);g.fill()});g.fillStyle='#222';g.fillRect(X0,y+U-1,X1-X0,1)}
+ const pos={},inf={};
+ S.devs.forEach(d=>{const y=T+(S.rackU-d.pos-d.u+1)*U+2,h=d.u*U-4;
+  inf[d.id]=[y,h];g.fillStyle='#2b2f3a';g.fillRect(X0,y,X1-X0,h);g.strokeStyle='#4b5563';g.strokeRect(X0+.5,y+.5,X1-X0-1,h-1);g.fillStyle=COL[d.type]||'#888';g.fillRect(X0,y,6,h);if(d.type==='Organizator'){g.fillStyle='#111';for(let i=0;i<14;i++)g.fillRect(X0+30+i*((X1-X0-60)/14),y+h/2-3,22,6)}
+  g.fillStyle='#e5e7eb';g.font='bold 13px sans-serif';g.fillText(d.name.slice(0,24),X0+14,y+18);g.fillStyle='#9ca3af';g.font='11px sans-serif';g.fillText(d.type+(d.w?' · '+d.w+'W':'')+(d.type==='UPS'?' · intrare 1: 220V':''),X0+14,y+34);
+  if(d.p>0){const rows=Math.max(1,Math.min(2*d.u,Math.ceil(d.p/12))),cols=Math.ceil(d.p/rows),rx=X0+200,cw=Math.min(24,(X1-rx-40)/cols),ch=Math.min(20,(h-10)/rows),sz=Math.min(cw,ch)-3;
+   for(let n=1;n<=d.p;n++){const ci=Math.floor((n-1)/rows),r=(n-1)%rows,px=rx+ci*cw,py=y+(h-rows*ch)/2+r*ch;
+    g.fillStyle=pc(d,n);g.fillRect(px,py,sz,sz);g.strokeStyle='#000';g.strokeRect(px+.5,py+.5,sz,sz);pos[d.id+'-'+n]=[px+sz/2,py+sz/2]}}
+  if(powered(d)){const ix=X1-26,iy=y+h/2-7;g.fillStyle=pc(d,0);g.fillRect(ix,iy,14,14);g.strokeStyle='#000';g.strokeRect(ix+.5,iy+.5,14,14);g.fillStyle='#000';g.font='bold 8px sans-serif';g.fillText('AC',ix+2,iy+10);pos[d.id+'-0']=[ix+7,iy+7]}});
+ if(cab)S.links.forEach(l=>[l.a,l.b].forEach(([id,n])=>{const q=pos[id+'-'+n],d=S.devs.find(x=>x.id==id);if(!q||!d)return;
+  const up=upOf(d,n),[y,h]=inf[id],org=S.devs.find(o=>o.type==='Organizator'&&(up?o.pos===d.pos+d.u:o.pos+o.u===d.pos));
+  let y2=up?y:y+h;if(org&&inf[org.id])y2=inf[org.id][0]+inf[org.id][1]/2;const c=CAB[l.c]||'#2563eb';g.lineCap='round';
+  g.strokeStyle='rgba(0,0,0,.6)';g.lineWidth=3.4;g.beginPath();g.moveTo(q[0],q[1]);g.lineTo(q[0],y2);g.stroke();
+  g.strokeStyle=c;g.lineWidth=2;g.beginPath();g.moveTo(q[0],q[1]);g.lineTo(q[0],y2);g.stroke();g.fillStyle=c;g.beginPath();g.arc(q[0],y2,2.6,0,7);g.fill()}));
+ return c}
+$('png').onclick=()=>{let cab=true;const mk=()=>rackCanvas(cab).toDataURL('image/png');
+ dlg('Imagine rack',`<label style="display:flex;gap:6px"><input type="checkbox" id="ic" checked style="width:auto">Cu cabluri (doar capetele)</label><img id="im" src="${mk()}" style="width:100%;background:#fff">`,
+  ()=>{const a=document.createElement('a');a.href=$('im').src;a.download=(S.name||'rack')+'.png';a.click()});
+ $('ic').onchange=e=>{cab=e.target.checked;$('im').src=mk()};$('dlg').style.width='min(560px,94vw)';$('ok').textContent='Descarcă PNG'};
+
+/* export */
+const XC=[['slot','Slot rack',1],['port','Port',2],['tip','Tip port',3],['vlan','VLAN',4],['dest','Destinație',5],['loc','Locație',6],['status','Status',7],['cablu','Cablu',8],['det','Detalii',9]];
+const OFF={'Patch Panel':['vlan','status','det'],UPS:['vlan','status','det'],PDU:['vlan','status','det'],ODF:['vlan'],CATV:['vlan']};
+const defCols=t=>{const o=OFF[t]||['det'];return XC.map(c=>c[0]).filter(k=>!o.includes(k))};
+function tables(sel){const out=[];[...S.devs].filter(d=>sel.ids.includes(d.id)).sort((a,b)=>b.pos-a.pos).forEach(d=>{
+ const rw=rows([d]);if(!rw.length)return;const c=sel.cols[d.type]||defCols(d.type);let idx=XC.filter(x=>c.includes(x[0])).map(x=>x[2]);if(!idx.length)idx=[2];
+ out.push({t:d.name,s:d.type+' · U'+d.pos+(d.u>1?'-U'+(d.pos+d.u-1):''),head:idx.map(i=>HEAD[i]),body:rw.map(r=>idx.map(i=>r[i]))})});return out}
+function expDlg(kind){
+ S.expCols=S.expCols||{};S.expOff=S.expOff||[];
+ const devs=S.devs.filter(d=>d.p>0),types=[...new Set(devs.map(d=>d.type))],chk='style="width:auto"';
+ let h='<b>Echipamente incluse</b> <button type="button" id="xall">Toate</button> <button type="button" id="xnone">Niciunul</button><div style="max-height:22vh;overflow:auto;margin:4px 0">'+
+  devs.map(d=>`<label style="display:flex;gap:6px;align-items:center;margin:2px 0"><input type="checkbox" class="xd" data-i="${d.id}" ${S.expOff.includes(d.id)?'':'checked'} ${chk}> ${esc(d.name)} <small>(${d.type}, U${d.pos})</small></label>`).join('')+'</div>'+
+  '<b>Câmpuri exportate, per tip de echipament</b><br><small>Fiecare echipament se exportă separat (foaie / tabel propriu), cu porturile lui.</small>'+types.map(t=>{const c=S.expCols[t]||defCols(t);
+   return `<div style="margin:6px 0"><u>${esc(t)}</u><br>`+XC.map(([k,l])=>`<label style="display:inline-flex;gap:3px;margin:2px 8px 2px 0"><input type="checkbox" class="xc" data-t="${esc(t)}" data-k="${k}" ${c.includes(k)?'checked':''} ${chk}>${l}</label>`).join('')+'</div>'}).join('');
+ if(S.catv.length)h+=`<label style="display:flex;gap:6px"><input type="checkbox" id="xcatv" checked ${chk}> Include și tabelul CATV</label>`;
+ if(kind==='pf')h+=`<label style="display:flex;gap:6px"><input type="checkbox" id="xsch" checked ${chk}> Include imaginea rack-ului</label><label style="display:flex;gap:6px"><input type="checkbox" id="xcab" checked ${chk}> Cu cabluri în imagine</label>`;
+ dlg('Export '+(kind==='xl'?'Excel':'PDF'),h,()=>{
+  S.expOff=[...document.querySelectorAll('.xd')].filter(x=>!x.checked).map(x=>+x.dataset.i);
+  types.forEach(t=>S.expCols[t]=[...document.querySelectorAll('.xc')].filter(x=>x.dataset.t===t&&x.checked).map(x=>x.dataset.k));
+  save();const sel={ids:devs.filter(d=>!S.expOff.includes(d.id)).map(d=>d.id),cols:S.expCols,catv:!$('xcatv')||$('xcatv').checked,sch:!$('xsch')||$('xsch').checked,cab:!$('xcab')||$('xcab').checked};
+  kind==='xl'?doXlsx(sel):doPdf(sel)});
+ $('dlg').style.width='min(560px,94vw)';$('ok').textContent='Exportă';
+ $('xall').onclick=()=>document.querySelectorAll('.xd').forEach(x=>x.checked=true);
+ $('xnone').onclick=()=>document.querySelectorAll('.xd').forEach(x=>x.checked=false)}
+function doXlsx(sel){const wb=XLSX.utils.book_new();
+ const used=new Set();tables(sel).forEach(T=>{const ws=XLSX.utils.aoa_to_sheet([[T.t+' – '+T.s],[],T.head,...T.body]);
+  ws['!cols']=T.head.map(h=>({wch:h==='Destinație'?34:h==='Locație'?22:h==='Detalii'?20:12}));
+  ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:2,c:0},e:{r:2+T.body.length,c:T.head.length-1}})};
+  const nm=T.t.replace(/[\\\/?*\[\]:]/g,'-').slice(0,28)||'Echip';let k=nm,i=2;while(used.has(k.toLowerCase()))k=nm+' ('+(i++)+')';used.add(k.toLowerCase());
+  XLSX.utils.book_append_sheet(wb,ws,k)});
+ if(sel.catv&&S.catv.length){const w2=XLSX.utils.aoa_to_sheet([CH,...catvRows()]);w2['!cols']=[26,26,18,24,8,30,12,8].map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,w2,'CATV')}
+ if(!wb.SheetNames.length){alert('Nimic de exportat.');return}
+ XLSX.writeFile(wb,(S.name||'rack')+'.xlsx')}
+function doPdf(sel){const{jsPDF}=window.jspdf,D=new jsPDF(),r=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+ D.setFontSize(16);D.text(r(S.name),14,16);let y=24;
+ if(sel.sch){const c=rackCanvas(sel.cab),use=S.devs.filter(d=>d.type!=='UPS').reduce((a,d)=>a+d.w,0),ups=S.devs.filter(d=>d.type==='UPS').reduce((a,d)=>a+d.w,0);
+  D.setFontSize(10);D.text(`Rack ${S.rackU}U · ${S.devs.length} echipamente · consum ${use} W · UPS ${ups} W`,14,23);
+  let w=255*c.width/c.height,h=255;if(w>182){w=182;h=w*c.height/c.width}
+  D.addImage(c.toDataURL('image/jpeg',.92),'JPEG',14,27,w,h);D.addPage();y=14}
+ const opt={styles:{fontSize:8},headStyles:{fillColor:[30,41,59]},didParseCell:c=>{if(c.section==='body'&&c.cell.raw==='LIBER'){c.cell.styles.textColor=[22,163,74];c.cell.styles.fontStyle='bold'}}};
+ tables(sel).forEach(T=>{if(y>250){D.addPage();y=14}D.setFontSize(12);D.setTextColor(0);D.text(r(T.t+' - '+T.s),14,y);
+  D.autoTable({...opt,head:[T.head.map(r)],body:T.body.map(x=>x.map(r)),startY:y+3});y=D.lastAutoTable.finalY+10});
+ if(sel.catv&&S.catv.length){if(y>250){D.addPage();y=14}D.setFontSize(12);D.setTextColor(0);D.text('CATV',14,y);D.autoTable({...opt,head:[CH],body:catvRows().map(x=>x.map(r)),startY:y+3})}
+ D.save((S.name||'rack')+'.pdf')}
+$('xl').onclick=()=>expDlg('xl');$('pf').onclick=()=>expDlg('pf');
+
+render();
+</script></body></html>
