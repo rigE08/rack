@@ -13,6 +13,10 @@ Aplicație web (un singur fișier `index.html`, fără build și fără backend)
 - Calcul consum (W / BTU/h) vs. capacitate UPS
 - Export Excel (câte o foaie pe echipament), PDF (cu imaginea rack-ului), imagine PNG, salvare/încărcare .json
 
+- Topologie logică (graf automat), etichete de cablu printabile (A4), BOM + lungimi estimate de cabluri în Excel
+- Validare patching (RJ45 ↔ fibră respins), Undo/Redo (Ctrl+Z / Ctrl+Y), Mod Audit pentru tabletă
+- Import vendor pack NetBox (devicetype-library de pe GitHub sau fișiere YAML/JSON)
+
 ## Publicare pe GitHub Pages
 1. Creează un repository nou pe GitHub și încarcă toate fișierele din acest folder (inclusiv `.nojekyll`).
 2. Settings → Pages → Source: *Deploy from a branch* → `main` / `(root)` → Save.
@@ -21,3 +25,4 @@ Aplicație web (un singur fișier `index.html`, fără build și fără backend)
 ## Note
 - Datele se salvează automat în browserul folosit (localStorage). Pentru backup sau mutare pe alt dispozitiv folosește „Salvează .json” / „Încarcă .json”.
 - Exportul Excel și PDF folosește SheetJS, jsPDF și jsPDF-AutoTable încărcate de pe cdnjs, deci este nevoie de internet.
+- Importul NetBox online folosește API-ul public GitHub (limită ~60 cereri/oră fără autentificare); indexul se păstrează în browser 7 zile.

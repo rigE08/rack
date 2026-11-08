@@ -48,14 +48,23 @@ summary small{color:#94a3b8;font-weight:400}.lib.sel{outline:2px solid #facc15}
 caption{text-align:left;font-weight:700;padding:12px 0 4px}td input,td select{width:100%;min-width:64px;padding:3px 5px;font-size:13px}td input.d{min-width:150px}td input.d::placeholder{color:#22c55e;font-weight:700;opacity:1}
 .dd{white-space:nowrap}.dd input{width:calc(100% - 34px)}.pk{padding:2px 6px}
 .lb{font-size:9px;color:#94a3b8;align-self:center;white-space:nowrap}.pin{flex:none;width:14px;height:14px;align-self:center;font-size:9px;line-height:14px;text-align:center;color:#000;font-style:normal;margin-left:4px}
+.p.mm{display:flex;gap:1px;padding:1px}.p.mm b{flex:1;background:#0b0f19;border-radius:1px}
+body.audit aside,body.audit .tabs,body.audit #power,body.audit .leg,body.audit header>*:not(.keep){display:none}
+body.audit #rack{width:min(100%,1000px)}body.audit .dn{font-size:14px;line-height:15px;width:170px}
+.p.ok{box-shadow:0 0 0 2px #fff,0 0 8px 3px #22c55e}.p.ok::after{content:'✓';position:absolute;left:0;right:0;top:0;bottom:0;font-size:11px;line-height:1;color:#fff;text-align:center;font-style:normal}
+.p.sfp{border-color:#22d3ee}
+.lpg{display:grid;background:#fff;color:#000;width:210mm;height:297mm;margin:0 0 12px;box-sizing:border-box;overflow:hidden}
+.lab{border:1px dashed #bbb;border-left:4px solid var(--lc);padding:1mm 1.5mm;font:7.5pt/1.25 sans-serif;overflow:hidden;box-sizing:border-box}
+#labSheet{overflow:auto}
+@media print{body *{visibility:hidden}#labSheet,#labSheet *{visibility:visible}#labSheet{position:absolute;left:0;top:0;overflow:visible}.lpg{margin:0;page-break-after:always}.lab{border-color:#ddd}@page{size:A4;margin:0}}
 </style></head><body>
 <header>
  <input id="name" placeholder="Nume proiect">
  <select id="size" title="Dimensiune rack"></select>
- <button id="fr" class="on">Față</button><button id="rr">Spate</button> <button id="cn">Conectare cablu</button><select id="cc"></select><button id="cs" class="on">Cabluri</button><button id="png">Imagine rack</button>
+ <button id="fr" class="on">Față</button><button id="rr">Spate</button> <button id="cn">Conectare cablu</button><select id="cc"></select><button id="cs" class="on">Cabluri</button><button id="png">Imagine rack</button> <button id="un" class="keep" title="Ctrl+Z">↶</button><button id="re" class="keep" title="Ctrl+Y">↷</button><button id="au" class="keep">Mod Audit</button><label style="font-size:12px"><input type="checkbox" id="vs" checked style="width:auto"> Validare patching</label>
  <button id="newp">Proiect nou</button>
  <button id="xl" class="pri">Export Excel</button><button id="pf" class="pri">Export PDF</button>
- <button id="sj">Salvează .json</button><button id="lj">Încarcă .json</button>
+ <button id="sj">Salvează .json</button><button id="lj">Încarcă .json</button> <button id="nb">Vendor pack NetBox</button> <button id="lst">Listă echipamente</button>
  <input id="file" type="file" accept=".json" hidden>
 </header>
 <div class="wrap">
@@ -63,7 +72,7 @@ caption{text-align:left;font-weight:700;padding:12px 0 4px}td input,td select{wi
   <small style="color:#94a3b8;display:block;margin-bottom:6px">Trage în rack, sau click pe echipament și apoi click pe U-ul dorit. ＋ = primul loc liber.</small>
   <div id="libs"></div><button id="cust" style="width:100%;margin-top:6px">+ Echipament personalizat</button></aside>
  <main>
-  <div class="tabs"><button id="t1" class="on">Rack</button> <button id="t2">Live Cable Matrix</button> <button id="t3">CATV</button></div>
+  <div class="tabs"><button id="t1" class="on">Rack</button> <button id="t2">Live Cable Matrix</button> <button id="t3">CATV</button> <button id="t4">Topologie</button> <button id="t5">Etichete</button></div>
   <div id="power"></div><div id="hint"></div>
   <div id="vRack">
    <div class="leg"><span><i style="background:#22c55e"></i>Ocupat</span><span><i style="background:#9ca3af"></i>Liber</span><span><i style="background:#3b82f6"></i>Trunk</span><span><i style="background:#a855f7"></i>LACP</span><span><i style="background:#f59e0b"></i>Down</span><span><i style="background:#333"></i>Disabled</span></div>
@@ -71,10 +80,13 @@ caption{text-align:left;font-weight:700;padding:12px 0 4px}td input,td select{wi
   </div>
   <div id="vMat" style="display:none;overflow:auto"><div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0"><input id="mq" placeholder="Filtru echipament..." style="flex:1;min-width:140px"><button id="mo">Deschide tot</button><button id="mc">Închide tot</button></div>
  <small style="color:#94a3b8">Editezi direct în tabel (se salvează automat). 🔌 = alege portul altui echipament. Destinație goală = LIBER.</small><div id="mbody"></div></div><div id="vCatv" style="display:none;overflow:auto"></div>
+  <div id="vTopo" style="display:none;overflow:auto"><label style="font-size:13px"><input type="checkbox" id="tp_pw" style="width:auto"> Arată și alimentarea (UPS / PDU)</label><div id="tbody" style="margin-top:6px"></div></div>
+  <div id="vLab" style="display:none"><div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0;align-items:center"><select id="lp"></select><select id="lf"></select><label style="font-size:13px"><input type="checkbox" id="lb" checked style="width:auto"> Etichetă pe ambele capete</label><button id="lpr" class="pri">Printează</button></div><div id="labSheet"></div></div>
  </main>
 </div>
 <dialog id="dlg"></dialog>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
@@ -93,12 +105,15 @@ const LIB=[
  {n:'Amplificator CATV',t:'CATV',u:1,p:4,w:15,pt:'F'},{n:'Multiswitch 9x16',t:'CATV',u:1,p:16,w:20,pt:'F'},{n:'Modulator CATV',t:'CATV',u:1,p:4,w:25,pt:'F'}];
 let S=null;try{S=JSON.parse(localStorage.getItem('rackcfg'))}catch(e){}
 S=S||{name:'Proiect nou',rackU:42,devs:[],catv:[],links:[],nid:1};
-S.catv=S.catv||[];S.links=S.links||[];fixUps();let view='front',drag=null,tab=1;const H=26;
-const save=()=>{try{localStorage.setItem('rackcfg',JSON.stringify(S))}catch(e){}};
+S.catv=S.catv||[];S.links=S.links||[];fixUps();let view='front',drag=null,tab=1;let H=26;
+const HS={st:[],i:-1};
+function persist(){try{localStorage.setItem('rackcfg',JSON.stringify(S))}catch(e){}}
+function save(){persist();const j=JSON.stringify(S);if(HS.st[HS.i]===j)return;HS.st=HS.st.slice(0,HS.i+1);HS.st.push(j);if(HS.st.length>31)HS.st.shift();HS.i=HS.st.length-1}
+function hist(d){const k=HS.i+d;if(k<0||k>=HS.st.length)return;HS.i=k;S=JSON.parse(HS.st[k]);conn.a=null;render()}
 
 const fits=(pos,u,id)=>pos>=1&&pos+u-1<=S.rackU&&!S.devs.some(d=>d.id!==id&&d.pos<=pos+u-1&&pos<=d.pos+d.u-1);
 const firstFree=u=>{for(let p=S.rackU-u+1;p>=1;p--)if(fits(p,u,-1))return p;return 0};
-function mk(t,pos){const d={id:S.nid++,name:t.n,type:t.t,u:t.u,pos,p:t.p,w:t.w,pt:t.pt||'RJ45',pd:{},ups:t.ups?JSON.parse(JSON.stringify(t.ups)):undefined};if(d.ups)d.pd[1]={dest:'220V',status:'Up'};return d}
+function mk(t,pos){const d={id:S.nid++,name:t.n,type:t.t,u:t.u,pos,p:t.p,w:t.w,pt:t.pt||'RJ45',pd:{},ptl:t.ptl,pn:t.pn,ups:t.ups?JSON.parse(JSON.stringify(t.ups)):undefined};if(d.ups)d.pd[1]={dest:'220V',status:'Up'};return d}
 function add(t,pos){pos=pos||firstFree(t.u);if(!pos||!fits(pos,t.u,-1)){alert('Nu există spațiu liber de '+t.u+'U în rack.');return}S.devs.push(mk(t,pos));render()}
 
 function pc(d,n){const x=d.pd[n]||{};
@@ -117,7 +132,7 @@ function renderRack(){
    gs.forEach((c,gi)=>{body+=(u.grp&&u.grp.length?`<span class="lb">G${gi+1}</span>`:'')+grp(a,a+c-1);a+=c})}
   else if(showP&&d.p>0){const rw=rowsOf(d),cols=Math.ceil(d.p/rw);
    body=`<div class="pg" style="grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rw},1fr)">`;
-   for(let n=1;n<=d.p;n++){const x=d.pd[n]||{};body+=`<i class="p" data-d="${d.id}" data-n="${n}" style="background:${pc(d,n)}" title="${esc(portLabel(d,n))}: ${esc(x.dest||'Liber')}"></i>`}
+   for(let n=1;n<=d.p;n++){const x=d.pd[n]||{};const mm=isMM(d,n);body+=`<i class="p${mm?' mm':''}${d.ptl&&ptOf(d,n)==='SFP'?' sfp':''}${x.ok?' ok':''}" data-d="${d.id}" data-n="${n}" style="background:${pc(d,n)}" title="${esc(portLabel(d,n))}${mm?' · MM duplex':''}: ${esc(x.dest||'Liber')}">${mm?'<b></b><b></b>':''}</i>`}
    body+='</div>'}
   if(powered(d)){const x0=d.pd[0]||{};body+=`<i class="p pin" data-d="${d.id}" data-n="0" style="background:${pc(d,0)}" title="alimentare: ${esc(x0.dest||'Liber')}">⚡</i>`}
   const extra=view==='rear'?` · ${d.w}W${d.type==='PDU'?' · '+d.p+' prize':''}`:'';
@@ -137,19 +152,19 @@ function rows(list){const r=[];[...(list||S.devs)].sort((a,b)=>b.pos-a.pos).forE
  for(let n=powered(d)?0:1;n<=d.p;n++){const x=d.pd[n]||{},z=n===0;
  const v=pp||z?'':x.mode&&x.mode!=='Access'?x.mode+(x.vlan?' '+x.vlan:''):(x.vlan||'');
  const det=fib?[x.fib&&x.fib.split(' ')[0],x.att&&x.att+' dB'].filter(Boolean).join(' · '):d.pt==='F'&&x.att?x.att+' dBµV':'';
- r.push([d.name,'U'+d.pos+(d.u>1?'-U'+(d.pos+d.u-1):''),z?'Alimentare':d.type==='UPS'?portLabel(d,n):n,z?'Alimentare':d.pt,v,x.dest||'LIBER',x.loc||'',pp||z?'':x.dest?(x.status||'Up'):'-',x.dest?(x.color||''):'',x.dest&&!z?det:''])}});return r}
+ r.push([d.name,'U'+d.pos+(d.u>1?'-U'+(d.pos+d.u-1):''),z?'Alimentare':d.type==='UPS'||d.pn?portLabel(d,n):n,z?'Alimentare':ptOf(d,n),v,x.dest||'LIBER',x.loc||'',pp||z?'':x.dest?(x.status||'Up'):'-',x.dest?(x.color||''):'',x.dest&&!z?det:''])}});return r}
 const MO=new Set();
 function renderMat(){let h='';const q=$('mq').value.toLowerCase();
  [...S.devs].filter(d=>(d.p>0||powered(d))&&(!q||(d.name+' '+d.type).toLowerCase().includes(q))).sort((a,b)=>b.pos-a.pos).forEach(d=>{
   const fib=d.type==='ODF'||d.pt==='SC'||d.pt==='LC',rf=d.pt==='F',pp=d.type==='Patch Panel',pw=d.type==='UPS'||d.type==='PDU',sw=!fib&&!rf&&!pp&&!pw;
-  const cols=['port',...(sw?['mode','vlan']:[]),'dest','loc',...(pp||pw?[]:['status']),'color',...(fib||rf?['att']:[])];
-  const HH={port:'Port',mode:'Mod',vlan:'VLAN',dest:'Destinație',loc:'Locație',status:'Status',color:'Cablu',att:fib?'Atenuare dB':'Nivel dBµV'};
+  const cols=['port',...(sw?['mode','vlan']:[]),'dest','loc',...(pp||pw?[]:['status']),'color',...(fib?['fib','att']:rf?['att']:[])];
+  const HH={port:'Port',mode:'Mod',vlan:'VLAN',dest:'Destinație',loc:'Locație',status:'Status',color:'Cablu',fib:'Tip fibră',att:fib?'Atenuare dB':'Nivel dBµV'};
   const at=(n,f)=>`data-d="${d.id}" data-n="${n}" data-f="${f}"`;
   const sl=(n,f,v,o)=>{if(v&&!o.includes(v))o=[...o,v];return `<select ${at(n,f)}>${o.map(x=>`<option value="${x}"${x===v?' selected':''}>${x||'—'}</option>`).join('')}</select>`};
   const used=Object.entries(d.pd).filter(([k,x])=>k>0&&x.dest).length;
   h+=`<details data-i="${d.id}"${MO.has(d.id)?' open':''}><summary>${esc(d.name)} <small>· ${d.type} · U${d.pos}${d.u>1?'-U'+(d.pos+d.u-1):''} · ${used}/${d.p} porturi ocupate</small></summary><table><tr>${cols.map(k=>`<th>${HH[k]}</th>`).join('')}</tr>`;
   for(let n=powered(d)?0:1;n<=d.p;n++){const x=d.pd[n]||{};
-   h+='<tr>'+cols.map(k=>k==='port'?`<td>${n===0?'Alimentare':d.type==='UPS'?portLabel(d,n):n}</td>`:n===0&&['mode','vlan','status','att'].includes(k)?'<td></td>':k==='mode'?`<td>${sl(n,k,x.mode||'Access',['Access','Trunk','LACP'])}</td>`:k==='status'?`<td>${sl(n,k,x.status||'Up',['Up','Down','Disabled'])}</td>`:k==='color'?`<td>${sl(n,k,x.color||'',['',...Object.keys(CAB)])}</td>`:
+   h+='<tr>'+cols.map(k=>k==='port'?`<td>${n===0?'Alimentare':d.type==='UPS'||d.pn?portLabel(d,n):n}</td>`:n===0&&['mode','vlan','status','att'].includes(k)?'<td></td>':k==='fib'?`<td>${sl(n,k,x.fib||'SM (monomod)',['SM (monomod)','MM (multimod)'])}</td>`:k==='mode'?`<td>${sl(n,k,x.mode||'Access',['Access','Trunk','LACP'])}</td>`:k==='status'?`<td>${sl(n,k,x.status||'Up',['Up','Down','Disabled'])}</td>`:k==='color'?`<td>${sl(n,k,x.color||'',['',...Object.keys(CAB)])}</td>`:
     k==='dest'?`<td class="dd"><input class="d" ${at(n,k)} value="${esc(x.dest||'')}" placeholder="LIBER"><button class="pk" data-d="${d.id}" data-n="${n}" title="Alege port din alt echipament">🔌</button></td>`:
     `<td><input ${at(n,k)} value="${esc(x[k]||'')}"></td>`).join('')+'</tr>'}
   h+='</table></details>'});
@@ -163,7 +178,7 @@ function pickPort(d,n){const L=linkOf(d.id,n),cand=S.devs.filter(x=>x.p>0||power
  dlg(`${esc(d.name)} – ${portLabel(d,n)}: conectează la…`,(L?`<p>🔗 Acum: <b>${esc(L.o.name)}</b> – ${portLabel(L.o,L.m)}</p>`:'')+
   `<label>Filtru echipament<input id="pk_q" placeholder="scrie numele sau tipul..."></label><label>Echipament<select id="pk_d"></select></label><label>Port<select id="pk_p"></select></label>`+sel('Culoare cablu','pk_c',CABLE,$('cc').value),
   ()=>{const o=S.devs.find(x=>x.id==+$('pk_d').value),m=+$('pk_p').value;if(!o||$('pk_p').value==='')return false;if(o.id===d.id&&m===n){alert('Alege alt port.');return false}
-   $('cc').value=$('pk_c').value;connect([d.id,n],[o.id,m])},L?'<button id="dc">Deconectează</button>':'');
+   $('cc').value=$('pk_c').value;if(connect([d.id,n],[o.id,m])===false)return false},L?'<button id="dc">Deconectează</button>':'');
  const fillP=()=>{const o=S.devs.find(x=>x.id==+$('pk_d').value);$('pk_p').innerHTML=o?Array.from({length:o.p+1},(_,i)=>i).filter(k=>k>0||powered(o)).map(k=>{const lk=linkOf(o.id,k),x=o.pd[k]||{};
    return `<option value="${k}">${portLabel(o,k)} — ${lk||x.dest?'ocupat: '+esc(x.dest||lk.o.name):'liber'}</option>`}).join(''):''};
  const fillD=()=>{const q=$('pk_q').value.toLowerCase();$('pk_d').innerHTML=cand.filter(x=>!q||(x.name+' '+x.type).toLowerCase().includes(q)).map(x=>`<option value="${x.id}">${esc(x.name)} (${x.type}, U${x.pos})</option>`).join('');fillP()};
@@ -172,7 +187,7 @@ function pickPort(d,n){const L=linkOf(d.id,n),cand=S.devs.filter(x=>x.p>0||power
 $('vMat').onchange=e=>{const t=e.target,f=t.dataset.f;if(!f)return;const d=S.devs.find(x=>x.id==t.dataset.d),n=+t.dataset.n,x=d.pd[n]=d.pd[n]||{};
  x[f]=t.value.trim();if(f==='dest')x.auto=false;save();renderRack();renderPower()};
 
-function render(){save();renderRack();renderPower();$('name').value=S.name;$('size').value=S.rackU;if(tab===2)renderMat();if(tab===3)renderCatv()}
+function render(){save();renderRack();renderPower();$('name').value=S.name;$('size').value=S.rackU;if(tab===2)renderMat();if(tab===3)renderCatv();if(tab===4)renderTopo();if(tab===5)renderLab()}
 
 /* dialoguri */
 const fld=(l,id,v,t='text')=>`<label>${l}<input id="${id}" type="${t}" value="${esc(v)}"></label>`;
@@ -186,33 +201,33 @@ function devModal(d,isNew){const u0=d.ups||{ins:1,outs:4,grp:[]};
   fld('Nume / etichetă','f_n',d.name)+sel('Tip','f_t',Object.keys(COL),d.type)+fld('Dimensiune (U)','f_u',d.u,'number')+fld('Poziție (U de jos)','f_pos',d.pos,'number')+
   '<div id="f_std">'+fld('Număr porturi','f_p',d.p,'number')+sel('Tip port','f_pt',['RJ45','SFP','Priză','SC','LC','F'],d.pt)+'</div>'+
   '<div id="f_ups">'+fld('Număr intrări','f_ins',u0.ins,'number')+fld('Număr ieșiri','f_outs',u0.outs,'number')+fld('Grupuri ieșiri (ex. 2,2 = două grupuri de câte 2 ieșiri; gol = fără grupuri)','f_grp',(u0.grp||[]).join(','))+'</div>'+
-  fld('Consum W (la UPS: capacitate W)','f_w',d.w,'number'),
+  '<div id="f_wr">'+fld('Consum W (la UPS: capacitate W)','f_w',d.w,'number')+'</div><div id="f_fib">'+sel('Tip fibră pentru tot ODF-ul','f_fa',['— neschimbat —','SM (monomod)','MM (multimod)'],'— neschimbat —')+'</div>',
   ()=>{const u=Math.max(1,+$('f_u').value|0),pos=+$('f_pos').value|0,ups=rd();
    if(!fits(pos,u,d.id)){alert('Nu e loc: spațiul este ocupat sau depășește rack-ul.');return false}
    if(ups&&ups.grp.length&&ups.grp.reduce((a,b)=>a+b,0)!==ups.outs){alert('Suma grupurilor trebuie să fie egală cu numărul de ieșiri ('+ups.outs+').');return false}
-   Object.assign(d,{name:$('f_n').value||'Echipament',type:$('f_t').value,u,pos,p:ups?ups.ins+ups.outs:Math.max(0,+$('f_p').value|0),pt:ups?'Priză':$('f_pt').value,w:+$('f_w').value||0,ups:ups||undefined});
+   Object.assign(d,{name:$('f_n').value||'Echipament',type:$('f_t').value,u,pos,p:ups?ups.ins+ups.outs:Math.max(0,+$('f_p').value|0),pt:ups?'Priză':$('f_pt').value,w:NOPW.includes($('f_t').value)?0:+$('f_w').value||0,ups:ups||undefined});if($('f_t').value==='ODF'&&$('f_fa').value[0]!=='—')for(let k=1;k<=d.p;k++){d.pd[k]=d.pd[k]||{};d.pd[k].fib=$('f_fa').value}
    if(isNew)S.devs.push(d);
-   if(d.ups&&!d.pd[1])d.pd[1]={dest:'220V',status:'Up'};S.links=S.links.filter(l=>[l.a,l.b].every(([i,n])=>{const x=S.devs.find(z=>z.id==i);return x&&n<=x.p}));render()},
+   if(d.ptl&&d.ptl.length!==d.p)delete d.ptl;if(d.pn&&d.pn.length!==d.p)delete d.pn;if(d.ups&&!d.pd[1])d.pd[1]={dest:'220V',status:'Up'};S.links=S.links.filter(l=>[l.a,l.b].every(([i,n])=>{const x=S.devs.find(z=>z.id==i);return x&&n<=x.p}));render()},
   (isNew?'':'<button id="del" class="red">Șterge</button>')+'<button id="tpl">Șablon</button>');
- const tg=()=>{const u=$('f_t').value==='UPS';$('f_ups').style.display=u?'':'none';$('f_std').style.display=u?'none':''};$('f_t').onchange=tg;tg();
+ const tg=()=>{const t=$('f_t').value,u=t==='UPS';$('f_wr').style.display=NOPW.includes(t)?'none':'';$('f_fib').style.display=t==='ODF'?'':'none';$('f_ups').style.display=u?'':'none';$('f_std').style.display=u?'none':''};$('f_t').onchange=tg;tg();
  if(!isNew)$('del').onclick=()=>{S.links=S.links.filter(l=>l.a[0]!==d.id&&l.b[0]!==d.id);S.devs=S.devs.filter(x=>x!==d);$('dlg').close();render()};
- $('tpl').onclick=()=>{const ups=rd();USR.push({n:$('f_n').value||'Șablon',t:$('f_t').value,u:Math.max(1,+$('f_u').value|0),p:ups?ups.ins+ups.outs:Math.max(0,+$('f_p').value|0),w:+$('f_w').value||0,pt:ups?'Priză':$('f_pt').value,ups:ups||undefined});try{localStorage.setItem('racktpl',JSON.stringify(USR))}catch(e){}renderLib();$('tpl').textContent='Salvat ✓'}}
+ $('tpl').onclick=()=>{const ups=rd();USR.push({n:$('f_n').value||'Șablon',t:$('f_t').value,u:Math.max(1,+$('f_u').value|0),p:ups?ups.ins+ups.outs:Math.max(0,+$('f_p').value|0),w:NOPW.includes($('f_t').value)?0:+$('f_w').value||0,pt:ups?'Priză':$('f_pt').value,ups:ups||undefined});try{localStorage.setItem('racktpl',JSON.stringify(USR))}catch(e){}renderLib();$('tpl').textContent='Salvat ✓'}}
 function portModal(d,n){const x=d.pd[n]||{},L=linkOf(d.id,n),info=L?`<p>🔗 Conectat la <b>${esc(L.o.name)}</b> – ${portLabel(L.o,L.m)} <small>(${L.o.type})</small></p>`:'',fib=n>0&&(d.type==='ODF'||d.pt==='SC'||d.pt==='LC'),rf=n>0&&d.pt==='F',pp=d.type==='Patch Panel',pw=n===0||d.type==='UPS'||d.type==='PDU';
  const FC=['Albastru','Portocaliu','Verde','Maro','Gri','Alb','Roșu','Negru','Galben','Violet','Roz','Turcoaz'];
  const body=info+fld('Destinație / conexiune','q_d',x.dest||'')+fld('Locație (cameră / etaj, ex. Camera 211)','q_l',x.loc||'')+(pp||pw?'':sel('Status','q_s',['Up','Down','Disabled'],x.status||'Up'))+
-  (fib?sel('Tip fibră','q_f',['SM (monomod)','MM (multimod)'],x.fib||'SM (monomod)')+sel('Culoare fibră','q_c',FC,x.color||FC[(n-1)%12])+fld('Atenuare măsurată (dB)','q_a',x.att||'','number')
+  (fib?sel('Tip fibră (MM = port duplex RX/TX)','q_f',['SM (monomod)','MM (multimod)'],x.fib||'SM (monomod)')+'<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="q_all" style="width:auto"> Aplică tipul de fibră la toate porturile acestui ODF</label>'+sel('Culoare fibră','q_c',FC,x.color||FC[(n-1)%12])+fld('Atenuare măsurată (dB)','q_a',x.att||'','number')
   :rf?fld('Nivel semnal (dBµV)','q_a',x.att||'','number')+sel('Culoare cablu','q_c',CABLE,x.color||'Albastru')
   :pp||pw?sel('Culoare cablu','q_c',CABLE,x.color||'Albastru')
   :sel('Mod','q_m',['Access','Trunk','LACP'],x.mode||'Access')+fld('VLAN (ex. 10 sau 10,20,30)','q_v',x.vlan||'')+sel('Culoare cablu','q_c',CABLE,x.color||'Albastru'));
  dlg(`${esc(d.name)} – ${fib?'fibra '+n:portLabel(d,n)}`,body,
-  ()=>{const g=i=>$(i)?$(i).value.trim():'';d.pd[n]={auto:x.auto&&g('q_d')===x.dest,dest:g('q_d'),loc:g('q_l'),status:g('q_s'),mode:g('q_m')||'Access',vlan:g('q_v'),color:g('q_c'),fib:g('q_f'),att:g('q_a')};render()},
+  ()=>{const g=i=>$(i)?$(i).value.trim():'';d.pd[n]={auto:x.auto&&g('q_d')===x.dest,dest:g('q_d'),loc:g('q_l'),status:g('q_s'),mode:g('q_m')||'Access',vlan:g('q_v'),color:g('q_c'),fib:g('q_f'),att:g('q_a')};if($('q_all')&&$('q_all').checked)for(let k=1;k<=d.p;k++){d.pd[k]=d.pd[k]||{};d.pd[k].fib=g('q_f')}render()},
   (L?'<button id="dc">Deconectează</button>':'')+'<button id="del" class="red">Eliberează</button>');
  if(L)$('dc').onclick=()=>{unlink(d.id,n);$('dlg').close();render()};
  $('del').onclick=()=>{unlink(d.id,n);delete d.pd[n];$('dlg').close();render()}}
 
 /* evenimente rack */
 const R=$('rack');
-R.onclick=e=>{if(conn.on&&e.target.closest('.p'))return;if(pick){placePick(e);return}const p=e.target.closest('.p'),dv=e.target.closest('.dev');
+R.onclick=e=>{if(audit){auditTap(e);return}if(conn.on&&e.target.closest('.p'))return;if(pick){placePick(e);return}const p=e.target.closest('.p'),dv=e.target.closest('.dev');
  if(p)portModal(S.devs.find(d=>d.id==p.dataset.d),+p.dataset.n);else if(dv)devModal(S.devs.find(d=>d.id==dv.dataset.id),false)};
 R.ondragstart=e=>{const dv=e.target.closest('.dev');if(dv){drag={dev:S.devs.find(d=>d.id==dv.dataset.id)};e.dataTransfer.setData('text','x')}};
 function target(e){if(!drag)return null;const u=drag.dev?drag.dev.u:drag.t.u,y=e.clientY-R.getBoundingClientRect().top-3;
@@ -230,7 +245,7 @@ let USR=[],pick=null;try{USR=JSON.parse(localStorage.getItem('racktpl'))||[]}cat
 const GRP={Switch:'Rețea',Router:'Rețea',Firewall:'Rețea','NVR/DVR':'Servere & înregistrare',Server:'Servere & înregistrare','Patch Panel':'Pasive (cupru)',ODF:'Fibră optică (ODF)','Tavă':'Pasive (cupru)','Blank Panel':'Pasive (cupru)',Organizator:'Pasive (cupru)',UPS:'Alimentare',PDU:'Alimentare',CATV:'CATV'};
 const OG=new Set(['Rețea']),ALL=()=>[...LIB,...USR];
 function renderLib(){const q=$('q').value.toLowerCase(),g={};
- ALL().forEach((t,i)=>{if(q&&!(t.n+t.t).toLowerCase().includes(q))return;const k=i>=LIB.length?'Șabloanele mele':(GRP[t.t]||'Altele');(g[k]=g[k]||[]).push([t,i])});
+ ALL().forEach((t,i)=>{if(q&&!(t.n+t.t).toLowerCase().includes(q))return;const k=i>=LIB.length?(t.mf?'NetBox · '+t.mf:'Șabloanele mele'):(GRP[t.t]||'Altele');(g[k]=g[k]||[]).push([t,i])});
  $('libs').innerHTML=Object.keys(g).map(k=>`<details data-k="${k}"${q||OG.has(k)?' open':''}><summary>${k} <small>(${g[k].length})</small></summary>`+g[k].map(([t,i])=>`<div class="lib${pick===t?' sel':''}" draggable="true" data-i="${i}" style="border-left-color:${COL[t.t]}">${esc(t.n)} <small>${t.u}U${t.ups?' · '+t.ups.ins+' intr./'+t.ups.outs+' ieș.':t.p?' · '+t.p+(t.pt==='Priză'?' prize':t.pt==='SC'||t.pt==='LC'?' fibre':'p'):''}</small>${i>=LIB.length?'<b class="rm" title="Șterge șablon">×</b>':''}<b class="add" title="Adaugă în primul loc liber">＋</b></div>`).join('')+'</details>').join('')||'<small>Niciun rezultat</small>'}
 $('libs').addEventListener('toggle',e=>{if(!$('q').value){e.target.open?OG.add(e.target.dataset.k):OG.delete(e.target.dataset.k)}},true);
 function setPick(t){pick=t;const h=$('hint');
@@ -275,11 +290,11 @@ $('vCatv').onclick=e=>{const b=e.target.closest('[data-e]');
 /* antet */
 $('size').innerHTML=[4,6,9,12,15,18,22,24,27,32,42,45,48].map(u=>`<option value="${u}">${u}U</option>`).join('');
 $('size').onchange=e=>{const n=+e.target.value;if(S.devs.some(d=>d.pos+d.u-1>n)){alert('Există echipamente deasupra noii dimensiuni. Mută-le mai întâi.');e.target.value=S.rackU;return}S.rackU=n;render()};
-$('name').oninput=e=>{S.name=e.target.value;save()};
+$('name').oninput=e=>{S.name=e.target.value;persist()};
 $('fr').onclick=()=>{view='front';$('fr').className='on';$('rr').className='';renderRack()};
 $('rr').onclick=()=>{view='rear';$('rr').className='on';$('fr').className='';renderRack()};
-function showTab(n){tab=n;['vRack','vMat','vCatv'].forEach((v,i)=>$(v).style.display=i+1===n?'':'none');[1,2,3].forEach(i=>$('t'+i).className=i===n?'on':'');$('power').style.display=n===1?'':'none';if(n===2)renderMat();if(n===3)renderCatv()}
-[1,2,3].forEach(i=>$('t'+i).onclick=()=>showTab(i));
+function showTab(n){tab=n;['vRack','vMat','vCatv','vTopo','vLab'].forEach((v,i)=>$(v).style.display=i+1===n?'':'none');[1,2,3,4,5].forEach(i=>$('t'+i).className=i===n?'on':'');$('power').style.display=n===1?'':'none';if(n===2)renderMat();if(n===3)renderCatv();if(n===4)renderTopo();if(n===5)renderLab()}
+[1,2,3,4,5].forEach(i=>$('t'+i).onclick=()=>showTab(i));
 $('newp').onclick=()=>{if(confirm('Ștergi proiectul curent și începi unul nou?')){S={name:'Proiect nou',rackU:+$('size').value,devs:[],catv:[],links:[],nid:1};render()}};
 $('sj').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download=(S.name||'rack')+'.json';a.click()};
 $('lj').onclick=()=>$('file').click();
@@ -293,17 +308,21 @@ const linkOf=(id,n)=>{const l=S.links.find(l=>(l.a[0]==id&&l.a[1]==n)||(l.b[0]==
  const o=l.a[0]==id&&l.a[1]==n?l.b:l.a,od=S.devs.find(d=>d.id==o[0]);return od?{l,o:od,m:o[1]}:null};
 function unlink(id,n){const L=linkOf(id,n);if(!L)return;S.links=S.links.filter(x=>x!==L.l);
  [[id,n],[L.o.id,L.m]].forEach(([i,k])=>{const d=S.devs.find(x=>x.id==i),x=d&&d.pd[k];if(x&&x.auto){delete x.dest;delete x.auto;if(d.type==='UPS'&&k===1)x.dest='220V'}})}
-function connect(a,b){if(a[0]===b[0]&&a[1]===b[1])return;unlink(a[0],a[1]);unlink(b[0],b[1]);const col=$('cc').value;S.links.push({a,b,c:col});
+function connect(a,b){if(a[0]===b[0]&&a[1]===b[1])return;
+ const da=S.devs.find(x=>x.id==a[0]),db=S.devs.find(x=>x.id==b[0]);
+ if($('vs').checked&&da&&db&&!COMPAT(pcls(da,a[1]),pcls(db,b[1]))){alert(`Conexiune respinsă:\n${da.name} – ${portLabel(da,a[1])} (${a[1]===0?'alimentare':ptOf(da,a[1])})\nnu este compatibil cu\n${db.name} – ${portLabel(db,b[1])} (${b[1]===0?'alimentare':ptOf(db,b[1])}).\n\nDezactivează „Validare patching” dacă vrei totuși conexiunea.`);return false}unlink(a[0],a[1]);unlink(b[0],b[1]);const col=$('cc').value;S.links.push({a,b,c:col});
  [[a,b],[b,a]].forEach(([p,q])=>{const d=S.devs.find(x=>x.id==p[0]),o=S.devs.find(x=>x.id==q[0]),old=d.pd[p[1]]||{};
   d.pd[p[1]]={...old,dest:o.name+' – '+portLabel(o,q[1]),auto:true,color:col,status:old.status||'Up'}});render()}
 const cen=(id,n)=>{const el=R.querySelector(`.p[data-d="${id}"][data-n="${n}"]`);if(!el)return null;const r=el.getBoundingClientRect(),b=R.getBoundingClientRect();return[r.left+r.width/2-b.left-R.clientLeft,r.top+r.height/2-b.top-R.clientTop]};
 const POW0=['Patch Panel','ODF','Tavă','Blank Panel','Organizator','UPS'];
 const powered=d=>!POW0.includes(d.type);
+const NOPW=['Patch Panel','ODF','Tavă','Blank Panel','Organizator'];
 function fixUps(){S.devs.forEach(d=>{if(d.type==='UPS'&&!d.ups){d.ups={ins:1,outs:4,grp:[]};d.p=5;d.pt='Priză'}if(d.type==='UPS'&&d.ups&&!d.pd[1])d.pd[1]={dest:'220V',status:'Up'}})}
 function portLabel(d,n){if(n===0)return'alimentare';
  if(d.type==='UPS'&&d.ups){const u=d.ups;if(n<=u.ins)return'intrare '+n+(n===1?' (220V)':'');const j=n-u.ins;let a=0;
   if(u.grp&&u.grp.length)for(let g=0;g<u.grp.length;g++){if(j<=a+u.grp[g])return`grup ${g+1} ieșirea ${j-a}`;a+=u.grp[g]}return'ieșirea '+j}
- return(d.pt==='Priză'?'priza ':'port ')+n}
+ if(d.pn&&d.pn[n-1])return d.pn[n-1];return(d.pt==='Priză'?'priza ':'port ')+n}
+const isMM=(d,n)=>{const x=d.pd[n]||{};return(d.type==='ODF'||d.pt==='SC'||d.pt==='LC')&&(x.fib||'').startsWith('MM')};
 const rowsOf=d=>Math.max(1,Math.min(2*d.u,Math.ceil(d.p/12))),upOf=(d,n)=>{const r=rowsOf(d);return r>1&&(n-1)%r<r/2};
 const gc=()=>CAB[$('cc').value]||'#2563eb',pEl=(id,n)=>R.querySelector(`.p[data-d="${id}"][data-n="${n}"]`);
 function clearHl(){R.querySelectorAll('.hl,.tgt').forEach(x=>x.classList.remove('hl','tgt'));const h=$('hv');if(h)h.remove()}
@@ -348,7 +367,7 @@ function rackCanvas(cab=true){
   g.fillStyle='#e5e7eb';g.font='bold 13px sans-serif';g.fillText(d.name.slice(0,24),X0+14,y+18);g.fillStyle='#9ca3af';g.font='11px sans-serif';g.fillText(d.type+(d.w?' · '+d.w+'W':'')+(d.type==='UPS'?' · intrare 1: 220V':''),X0+14,y+34);
   if(d.p>0){const rows=Math.max(1,Math.min(2*d.u,Math.ceil(d.p/12))),cols=Math.ceil(d.p/rows),rx=X0+200,cw=Math.min(24,(X1-rx-40)/cols),ch=Math.min(20,(h-10)/rows),sz=Math.min(cw,ch)-3;
    for(let n=1;n<=d.p;n++){const ci=Math.floor((n-1)/rows),r=(n-1)%rows,px=rx+ci*cw,py=y+(h-rows*ch)/2+r*ch;
-    g.fillStyle=pc(d,n);g.fillRect(px,py,sz,sz);g.strokeStyle='#000';g.strokeRect(px+.5,py+.5,sz,sz);pos[d.id+'-'+n]=[px+sz/2,py+sz/2]}}
+    const mm=isMM(d,n),w=mm?cw-3:sz;g.fillStyle=pc(d,n);g.fillRect(px,py,w,sz);g.strokeStyle='#000';g.strokeRect(px+.5,py+.5,w,sz);if(mm){g.fillStyle='#0b0f19';const iw=(w-5)/2;g.fillRect(px+2,py+2,iw,sz-4);g.fillRect(px+3+iw,py+2,iw,sz-4)}pos[d.id+'-'+n]=[px+w/2,py+sz/2]}}
   if(powered(d)){const ix=X1-26,iy=y+h/2-7;g.fillStyle=pc(d,0);g.fillRect(ix,iy,14,14);g.strokeStyle='#000';g.strokeRect(ix+.5,iy+.5,14,14);g.fillStyle='#000';g.font='bold 8px sans-serif';g.fillText('AC',ix+2,iy+10);pos[d.id+'-0']=[ix+7,iy+7]}});
  if(cab)S.links.forEach(l=>[l.a,l.b].forEach(([id,n])=>{const q=pos[id+'-'+n],d=S.devs.find(x=>x.id==id);if(!q||!d)return;
   const up=upOf(d,n),[y,h]=inf[id],org=S.devs.find(o=>o.type==='Organizator'&&(up?o.pos===d.pos+d.u:o.pos+o.u===d.pos));
@@ -360,6 +379,124 @@ $('png').onclick=()=>{let cab=true;const mk=()=>rackCanvas(cab).toDataURL('image
  dlg('Imagine rack',`<label style="display:flex;gap:6px"><input type="checkbox" id="ic" checked style="width:auto">Cu cabluri (doar capetele)</label><img id="im" src="${mk()}" style="width:100%;background:#fff">`,
   ()=>{const a=document.createElement('a');a.href=$('im').src;a.download=(S.name||'rack')+'.png';a.click()});
  $('ic').onchange=e=>{cab=e.target.checked;$('im').src=mk()};$('dlg').style.width='min(560px,94vw)';$('ok').textContent='Descarcă PNG'};
+
+/* extra: validare, istoric, topologie, BOM, etichete, audit, NetBox */
+const ptOf=(d,n)=>(d.ptl&&d.ptl[n-1])||d.pt;
+const pcls=(d,n)=>{if(n===0)return'pw';const t=ptOf(d,n);return t==='RJ45'?'cu':t==='SFP'?'sfp':t==='SC'||t==='LC'?'fib':t==='Priză'?'pw':t==='F'?'rf':'cu'};
+const COMPAT=(A,B)=>A===B||(A==='sfp'&&B==='fib')||(A==='fib'&&B==='sfp');
+$('un').onclick=()=>hist(-1);$('re').onclick=()=>hist(1);
+document.addEventListener('keydown',e=>{const t=e.target&&e.target.tagName;if(['INPUT','TEXTAREA','SELECT'].includes(t)||$('dlg').open||!(e.ctrlKey||e.metaKey))return;
+ const k=e.key.toLowerCase();if(k==='z'){e.preventDefault();hist(e.shiftKey?1:-1)}else if(k==='y'){e.preventDefault();hist(1)}});
+
+/* audit */
+let audit=false;
+function auditInfo(){let tot=0,ok=0;S.devs.forEach(d=>{for(let n=1;n<=d.p;n++){const x=d.pd[n]||{};if(x.dest||linkOf(d.id,n)){tot++;if(x.ok)ok++}}});return[ok,tot]}
+function auditHint(msg){const h=$('hint'),[o,t]=auditInfo();h.style.display='block';
+ h.innerHTML=`<b>Mod Audit</b>: atinge un port ca să-l bifezi. Verificate: <b>${o}/${t}</b> porturi conectate`+(msg?'<br>'+esc(msg):'')+' <button id="ar">Resetează bifele</button>';
+ $('ar').onclick=()=>{if(confirm('Ștergi toate bifele de verificare?')){S.devs.forEach(d=>Object.values(d.pd).forEach(x=>delete x.ok));render();auditHint()}}}
+function auditTap(e){const p=e.target.closest('.p');if(!p)return;const d=S.devs.find(x=>x.id==p.dataset.d),n=+p.dataset.n,x=d.pd[n]=d.pd[n]||{};x.ok=!x.ok;render();
+ auditHint(`${d.name} – ${portLabel(d,n)} → ${x.dest||'liber'}${x.loc?' ('+x.loc+')':''} · ${x.ok?'✓ verificat':'nebifat'}`)}
+function setAudit(on){audit=on;document.body.classList.toggle('audit',on);$('au').textContent=on?'Ieși din audit':'Mod Audit';H=on?40:26;conn.on=false;conn.a=null;$('cn').className='';
+ if(on)showTab(1);setPick(null);render();if(on)auditHint()}
+$('au').onclick=()=>setAudit(!audit);
+
+/* topologie */
+const TL={Firewall:0,Router:0,Switch:1,'Patch Panel':2,ODF:2,'NVR/DVR':3,Server:3,CATV:3,UPS:4,PDU:5};
+function renderTopo(){const showPw=$('tp_pw').checked,skip=['Blank Panel','Tavă','Organizator'],ed={};
+ S.links.forEach(l=>{const A=S.devs.find(x=>x.id==l.a[0]),B=S.devs.find(x=>x.id==l.b[0]);if(!A||!B||A.id===B.id)return;
+  const pw=pcls(A,l.a[1])==='pw'||pcls(B,l.b[1])==='pw';if(pw&&!showPw)return;
+  const a=Math.min(A.id,B.id),b=Math.max(A.id,B.id),k=a+'-'+b+(pw?'p':'d'),e=ed[k]=ed[k]||{a,b,pw,c:l.c,list:[]};
+  e.list.push(A.name+' '+portLabel(A,l.a[1])+' ↔ '+B.name+' '+portLabel(B,l.b[1]))});
+ const devs=S.devs.filter(d=>!skip.includes(d.type)&&(showPw||!['UPS','PDU'].includes(d.type)));
+ if(!devs.length){$('tbody').innerHTML='<p style="color:#94a3b8">Nu există echipamente.</p>';return}
+ const layers={};devs.forEach(d=>{const L=TL[d.type]??3;(layers[L]=layers[L]||[]).push(d)});
+ const keys=Object.keys(layers).map(Number).sort((a,b)=>a-b),NW=150,NH=46,GX=28,GY=80,P={},E=Object.values(ed);
+ const nbr=d=>E.filter(e=>e.a===d.id||e.b===d.id).map(e=>e.a===d.id?e.b:e.a);
+ keys.forEach((k,r)=>{const arr=layers[k],m=d=>{const v=nbr(d).filter(i=>P[i]).map(i=>P[i].f);return v.length?v.reduce((a,b)=>a+b,0)/v.length:9};
+  arr.sort((p,q)=>m(p)-m(q)||q.pos-p.pos);arr.forEach((d,i)=>P[d.id]={i,r,n:arr.length,f:(i+.5)/arr.length})});
+ const W=Math.max(...keys.map(k=>layers[k].length))*(NW+GX)+GX,H2=30+keys.length*(NH+GY);
+ devs.forEach(d=>{const p=P[d.id];p.x=(W-p.n*(NW+GX)+GX)/2+p.i*(NW+GX);p.y=30+p.r*(NH+GY)});
+ let s=`<svg width="${W}" height="${H2}" viewBox="0 0 ${W} ${H2}" xmlns="http://www.w3.org/2000/svg" style="background:#0b1220;border-radius:8px;max-width:none">`;
+ E.forEach(e=>{const A=P[e.a],B=P[e.b];let x1,x2,y1,y2,d;
+  if(A.r===B.r){x1=A.x+NW/2;x2=B.x+NW/2;y1=y2=A.y;d=`M${x1},${y1} C${x1},${y1-45} ${x2},${y2-45} ${x2},${y2}`}
+  else{const up=A.r<B.r?A:B,dn=A.r<B.r?B:A;x1=up.x+NW/2;y1=up.y+NH;x2=dn.x+NW/2;y2=dn.y;d=`M${x1},${y1} C${x1},${(y1+y2)/2} ${x2},${(y1+y2)/2} ${x2},${y2}`}
+  const col=e.pw?'#f59e0b':(CAB[e.c]||'#94a3b8'),mx=(x1+x2)/2,my=A.r===B.r?y1-34:(y1+y2)/2;
+  s+=`<g><title>${esc(e.list.join('\n'))}</title><path d="${d}" fill="none" stroke="${col}" stroke-width="${Math.min(1.5+e.list.length*.5,5)}"${e.pw?' stroke-dasharray="6 4"':''}/>`+
+   (e.list.length>1?`<text x="${mx}" y="${my}" fill="#e5e7eb" font-size="11" text-anchor="middle" stroke="#0b1220" stroke-width="3" paint-order="stroke">×${e.list.length}</text>`:'')+'</g>'});
+ devs.forEach(d=>{const p=P[d.id],deg=nbr(d).length;
+  s+=`<g><title>${esc(d.name)} (${d.type}, U${d.pos})</title><rect x="${p.x}" y="${p.y}" width="${NW}" height="${NH}" rx="8" fill="#1f2937" stroke="${COL[d.type]||'#888'}" stroke-width="2" opacity="${deg?1:.5}"/><text x="${p.x+NW/2}" y="${p.y+19}" fill="#e5e7eb" font-size="12" font-weight="600" text-anchor="middle">${esc(d.name.slice(0,20))}</text><text x="${p.x+NW/2}" y="${p.y+35}" fill="#94a3b8" font-size="10" text-anchor="middle">${d.type} · U${d.pos}</text></g>`});
+ $('tbody').innerHTML=s+'</svg><p style="color:#94a3b8;font-size:12px">Fiecare linie = conexiuni între două echipamente (×N = mai multe cabluri), în culoarea cablului. Treci cu cursorul peste o linie ca să vezi porturile.</p>'}
+$('tp_pw').onchange=renderTopo;
+
+/* etichete */
+const LP={'A4 3×8 (70×37 mm)':[3,8,70,37],'A4 4×10 (52,5×29,7 mm)':[4,10,52.5,29.7],'A4 5×13 (38×21,2 mm)':[5,13,38.1,21.2],'A4 2×7 (99×38 mm)':[2,7,99.1,38.1]};
+$('lp').innerHTML=Object.keys(LP).map(k=>`<option>${k}</option>`).join('');
+function renderLab(){const f=$('lf'),cur=f.value;f.innerHTML='<option value="">Toate echipamentele</option>'+S.devs.filter(d=>d.p>0||powered(d)).map(d=>`<option value="${d.id}">${esc(d.name)}</option>`).join('');f.value=cur;
+ const[cols,rows,w,h]=LP[$('lp').value],both=$('lb').checked,L=[];
+ S.links.forEach(l=>{const A=S.devs.find(x=>x.id==l.a[0]),B=S.devs.find(x=>x.id==l.b[0]);if(!A||!B)return;if(f.value&&A.id!=f.value&&B.id!=f.value)return;
+  const sd=(d,n)=>({t:d.name+' · '+portLabel(d,n),loc:(d.pd[n]||{}).loc||''});
+  L.push({c:l.c,s:sd(A,l.a[1]),d:sd(B,l.b[1])});if(both)L.push({c:l.c,s:sd(B,l.b[1]),d:sd(A,l.a[1])})});
+ const per=cols*rows,pages=[];for(let i=0;i<L.length;i+=per)pages.push(L.slice(i,i+per));
+ $('labSheet').innerHTML=L.length?pages.map(pg=>`<div class="lpg" style="grid-template-columns:repeat(${cols},${w}mm);grid-auto-rows:${h}mm;padding:${(297-rows*h)/2}mm 0 0 ${(210-cols*w)/2}mm">`+
+  pg.map(x=>`<div class="lab" style="--lc:${CAB[x.c]||'#2563eb'}"><div><b>DE LA:</b> ${esc(x.s.t)}</div><div><b>LA:</b> ${esc(x.d.t)}${x.d.loc?' <i>('+esc(x.d.loc)+')</i>':''}</div></div>`).join('')+'</div>').join('')
+  :'<p style="color:#94a3b8">Nu există cabluri conectate. Conectează porturi, apoi revino aici.</p>'}
+$('lp').onchange=$('lf').onchange=$('lb').onchange=renderLab;$('lpr').onclick=()=>window.print();
+
+/* lungimi cabluri + BOM */
+const STD=[0.25,0.5,1,1.5,2,3,5,7,10,15,20];
+function linkInfo(l){const A=S.devs.find(x=>x.id==l.a[0]),B=S.devs.find(x=>x.id==l.b[0]);if(!A||!B)return null;
+ const ca=pcls(A,l.a[1]),cb=pcls(B,l.b[1]),mid=d=>d.pos+d.u/2,du=Math.abs(mid(A)-mid(B)),lo=Math.min(A.pos,B.pos),hi=Math.max(A.pos+A.u,B.pos+B.u);
+ const org=S.devs.some(o=>o.type==='Organizator'&&o.pos>=lo&&o.pos+o.u<=hi),est=du*0.04445+(org?0.4:0.8)+(A.id===B.id?0:0.2),rec=STD.find(x=>x>=est)||Math.ceil(est);let tip;
+ if(ca==='pw'||cb==='pw')tip='Cablu alimentare (IEC C13–C14)';else if(ca==='cu'&&cb==='cu')tip='Patch cord Cat6 UTP';
+ else if(ca==='rf'||cb==='rf')tip='Cablu coaxial RG6 cu conectori F';else if(ca==='sfp'&&cb==='sfp')tip='Cablu DAC / AOC SFP';
+ else tip='Patch cord fibră duplex '+(isMM(A,l.a[1])||isMM(B,l.b[1])?'MM':'SM');
+ return{A,B,a:l.a,b:l.b,du,est,rec,tip,c:l.c,org,sfp:(ca==='sfp'?1:0)+(cb==='sfp'?1:0)}}
+function addBom(wb){const L=S.links.map(linkInfo).filter(Boolean);
+ if(L.length){const r=[['De la','Port','La','Port','Distanță (U)','Estimat (m)','Recomandat (m)','Tip cablu','Culoare','Organizator pe traseu']];
+  L.forEach(x=>r.push([x.A.name,portLabel(x.A,x.a[1]),x.B.name,portLabel(x.B,x.b[1]),+x.du.toFixed(1),+x.est.toFixed(2),x.rec,x.tip,x.c||'',x.org?'da':'nu']));
+  const ws=XLSX.utils.aoa_to_sheet(r);ws['!cols']=[24,18,24,18,12,12,14,36,10,12].map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,ws,'Lungimi cabluri')}
+ const agg={};L.forEach(x=>{const k=[x.tip,x.c||'',x.rec].join('|');agg[k]=(agg[k]||0)+1});
+ const r=[['NECESAR ACHIZIȚIE (BOM)'],[],['Cabluri'],['Tip cablu','Culoare','Lungime (m)','Cantitate']];
+ Object.entries(agg).sort().forEach(([k,n])=>{const[a,b,c]=k.split('|');r.push([a,b,+c,n])});
+ const sfp=L.filter(x=>x.tip.startsWith('Patch cord fibră')).reduce((a,x)=>a+x.sfp,0);
+ if(sfp)r.push([],['Module'],['Descriere','','','Cantitate'],['Modul SFP (transceiver) pentru porturile conectate cu fibră','','',sfp]);
+ const cnt={};S.devs.forEach(d=>{const k=d.type+'|'+d.name+'|'+d.u;cnt[k]=(cnt[k]||0)+1});
+ r.push([],['Echipamente'],['Tip','Model / nume','U','Cantitate']);Object.entries(cnt).sort().forEach(([k,n])=>{const[t,m,u]=k.split('|');r.push([t,m,+u,n])});
+ const ws=XLSX.utils.aoa_to_sheet(r);ws['!cols']=[44,26,14,12].map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,ws,'BOM')}
+
+/* NetBox vendor pack */
+const NB_RAW='https://raw.githubusercontent.com/netbox-community/devicetype-library/master/',NB_API='https://api.github.com/repos/netbox-community/devicetype-library/git/trees/master?recursive=1';
+let NBX=null;
+async function nbIndex(){if(NBX)return NBX;try{const c=JSON.parse(localStorage.getItem('nbidx')||'null');if(c&&c.t>Date.now()-6048e5&&c.p.length)return NBX=c.p}catch(e){}
+ const r=await fetch(NB_API);if(!r.ok)throw new Error('GitHub '+r.status);const j=await r.json();NBX=j.tree.filter(x=>/^device-types\/.+\.ya?ml$/i.test(x.path)).map(x=>x.path);
+ try{localStorage.setItem('nbidx',JSON.stringify({t:Date.now(),p:NBX}))}catch(e){}return NBX}
+function nbParse(t){try{return window.jsyaml?jsyaml.load(t):JSON.parse(t)}catch(e){try{return JSON.parse(t)}catch(_){return null}}}
+function nbMap(o){const mf=String(o.manufacturer||'').trim(),model=String(o.model||o.part_number||'Device').trim(),nm=(mf+' '+model).toLowerCase();
+ const ifs=o.interfaces||[],fp=o['front-ports']||[],po=o['power-ports']||[],ou=o['power-outlets']||[];
+ const it=i=>{const t=String(i.type||'').toLowerCase();if(/virtual|lag|bridge|other/.test(t)&&!/base/.test(t))return null;
+  return/base-t|base-tx/.test(t)?'RJ45':/sfp|xfp|gbic|cfp|osfp|base-x|base-[sler]r|base-cr|base-cx|base-zr/.test(t)?'SFP':'RJ45'};
+ const ci=ifs.filter(i=>!i.mgmt_only&&it(i)),w=Math.round(po.reduce((a,x)=>a+(+x.maximum_draw||+x.allocated_draw||0),0)),u=Math.max(1,Math.ceil(+o.u_height||1));
+ let t,p,pt='RJ45',ptl,pn,ups;
+ if(ou.length&&!ci.length&&!fp.length){if(/ups|smart-ups|back-ups|srt|online|vfi/.test(nm)){t='UPS';ups={ins:Math.max(1,po.length),outs:ou.length,grp:[]};p=ups.ins+ups.outs}else{t='PDU';p=ou.length}pt='Priză'}
+ else if(!ci.length&&fp.length){const f=fp.map(x=>String(x.type||'').toLowerCase()),fiber=f.some(x=>/^(lc|sc|st|fc|mpo|mtrj|e2000)/.test(x));
+  t=fiber?'ODF':'Patch Panel';p=fp.length;pt=fiber?(f.some(x=>x.startsWith('sc'))&&!f.some(x=>x.startsWith('lc'))?'SC':'LC'):'RJ45'}
+ else{t=/firewall|fortigate|asa|pa-\d|usg|firepower|ngfw|srx/.test(nm)?'Firewall':/router|ccr|isr|asr|rb\d/.test(nm)?'Router':/nvr|dvr|ds-7/.test(nm)?'NVR/DVR':/server|poweredge|proliant/.test(nm)?'Server':'Switch';
+  p=ci.length;const tl=ci.map(it);pt=tl.filter(x=>x==='SFP').length>p/2?'SFP':'RJ45';if(tl.some(x=>x!==pt))ptl=tl;const nn=ci.map(i=>String(i.name||''));if(nn.some(Boolean))pn=nn}
+ return{n:(mf?mf+' ':'')+model,t,u,p,w:NOPW.includes(t)?0:w,pt,ptl,pn,ups,mf}}
+function nbLib(t){if(!USR.some(x=>x.n===t.n&&x.mf===t.mf))USR.push(t);try{localStorage.setItem('racktpl',JSON.stringify(USR))}catch(e){}renderLib()}
+async function nbGet(path){const r=await fetch(NB_RAW+encodeURI(path));if(!r.ok)throw new Error(r.status);const o=nbParse(await r.text());if(!o||!o.model)throw new Error('format necunoscut');return nbMap(o)}
+$('nb').onclick=()=>{dlg('Vendor pack NetBox',`<p style="color:#94a3b8;font-size:12px">Caută în NetBox devicetype-library (GitHub), sau încarcă fișiere device-type (.yaml / .yml / .json). Șabloanele apar în librărie, grupate pe producător, cu porturile și numele lor reale.</p>
+  <label>Caută (producător sau model)<input id="nb_q" placeholder="ex. cisco 2960, mikrotik ccr, ubiquiti"></label><div id="nb_r" style="max-height:30vh;overflow:auto"></div>
+  <label>Sau încarcă fișiere<input type="file" id="nb_f" multiple accept=".yaml,.yml,.json"></label><div id="nb_s" style="color:#94a3b8;font-size:12px;margin-top:6px"></div>`,()=>{});
+ $('ok').textContent='Închide';$('x').style.display='none';$('dlg').style.width='min(560px,94vw)';let tm;
+ $('nb_q').oninput=()=>{clearTimeout(tm);tm=setTimeout(async()=>{const q=$('nb_q').value.toLowerCase().split(/\s+/).filter(Boolean),r=$('nb_r');
+   if(q.join('').length<2){r.innerHTML='';return}r.textContent='Se încarcă indexul…';
+   try{const ix=await nbIndex(),res=ix.filter(x=>q.every(w=>x.toLowerCase().includes(w))).slice(0,60);
+    r.innerHTML=res.length?res.map(x=>{const a=x.split('/');return `<div class="lib" data-p="${esc(x)}">${esc(a[1])} · ${esc((a[2]||'').replace(/\.ya?ml$/i,''))} <button data-a="lib">+ Librărie</button> <button data-a="rack">+ Rack</button></div>`}).join(''):'Niciun rezultat.'}
+   catch(x){r.textContent='Nu s-a putut încărca indexul NetBox ('+x.message+'). Verifică internetul sau folosește încărcarea de fișiere.'}},350)};
+ $('nb_r').onclick=async e=>{const b=e.target.closest('button');if(!b)return;const path=b.closest('[data-p]').dataset.p,st=$('nb_s');st.textContent='Se descarcă…';
+  try{const t=await nbGet(path);nbLib(t);if(b.dataset.a==='rack')add(t);st.textContent=`Adăugat: ${t.n} (${t.t}, ${t.u}U, ${t.p} porturi)`}catch(x){st.textContent='Eroare: '+x.message}};
+ $('nb_f').onchange=async e=>{let n=0;for(const f of e.target.files){const o=nbParse(await f.text());(Array.isArray(o)?o:[o]).forEach(x=>{if(x&&x.model){nbLib(nbMap(x));n++}})}$('nb_s').textContent=`Importate în librărie: ${n} șabloane`}};
 
 /* export */
 const XC=[['slot','Slot rack',1],['port','Port',2],['tip','Tip port',3],['vlan','VLAN',4],['dest','Destinație',5],['loc','Locație',6],['status','Status',7],['cablu','Cablu',8],['det','Detalii',9]];
@@ -376,11 +513,12 @@ function expDlg(kind){
   '<b>Câmpuri exportate, per tip de echipament</b><br><small>Fiecare echipament se exportă separat (foaie / tabel propriu), cu porturile lui.</small>'+types.map(t=>{const c=S.expCols[t]||defCols(t);
    return `<div style="margin:6px 0"><u>${esc(t)}</u><br>`+XC.map(([k,l])=>`<label style="display:inline-flex;gap:3px;margin:2px 8px 2px 0"><input type="checkbox" class="xc" data-t="${esc(t)}" data-k="${k}" ${c.includes(k)?'checked':''} ${chk}>${l}</label>`).join('')+'</div>'}).join('');
  if(S.catv.length)h+=`<label style="display:flex;gap:6px"><input type="checkbox" id="xcatv" checked ${chk}> Include și tabelul CATV</label>`;
+ if(kind==='xl')h+=`<label style="display:flex;gap:6px"><input type="checkbox" id="xbom" checked ${chk}> Include BOM și lungimi cabluri (foi noi)</label>`;
  if(kind==='pf')h+=`<label style="display:flex;gap:6px"><input type="checkbox" id="xsch" checked ${chk}> Include imaginea rack-ului</label><label style="display:flex;gap:6px"><input type="checkbox" id="xcab" checked ${chk}> Cu cabluri în imagine</label>`;
  dlg('Export '+(kind==='xl'?'Excel':'PDF'),h,()=>{
   S.expOff=[...document.querySelectorAll('.xd')].filter(x=>!x.checked).map(x=>+x.dataset.i);
   types.forEach(t=>S.expCols[t]=[...document.querySelectorAll('.xc')].filter(x=>x.dataset.t===t&&x.checked).map(x=>x.dataset.k));
-  save();const sel={ids:devs.filter(d=>!S.expOff.includes(d.id)).map(d=>d.id),cols:S.expCols,catv:!$('xcatv')||$('xcatv').checked,sch:!$('xsch')||$('xsch').checked,cab:!$('xcab')||$('xcab').checked};
+  save();const sel={ids:devs.filter(d=>!S.expOff.includes(d.id)).map(d=>d.id),cols:S.expCols,catv:!$('xcatv')||$('xcatv').checked,sch:!$('xsch')||$('xsch').checked,cab:!$('xcab')||$('xcab').checked,bom:!$('xbom')||$('xbom').checked};
   kind==='xl'?doXlsx(sel):doPdf(sel)});
  $('dlg').style.width='min(560px,94vw)';$('ok').textContent='Exportă';
  $('xall').onclick=()=>document.querySelectorAll('.xd').forEach(x=>x.checked=true);
@@ -392,7 +530,7 @@ function doXlsx(sel){const wb=XLSX.utils.book_new();
   const nm=T.t.replace(/[\\\/?*\[\]:]/g,'-').slice(0,28)||'Echip';let k=nm,i=2;while(used.has(k.toLowerCase()))k=nm+' ('+(i++)+')';used.add(k.toLowerCase());
   XLSX.utils.book_append_sheet(wb,ws,k)});
  if(sel.catv&&S.catv.length){const w2=XLSX.utils.aoa_to_sheet([CH,...catvRows()]);w2['!cols']=[26,26,18,24,8,30,12,8].map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,w2,'CATV')}
- if(!wb.SheetNames.length){alert('Nimic de exportat.');return}
+ if(sel.bom)addBom(wb);if(!wb.SheetNames.length){alert('Nimic de exportat.');return}
  XLSX.writeFile(wb,(S.name||'rack')+'.xlsx')}
 function doPdf(sel){const{jsPDF}=window.jspdf,D=new jsPDF(),r=s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'');
  D.setFontSize(16);D.text(r(S.name),14,16);let y=24;
@@ -405,6 +543,38 @@ function doPdf(sel){const{jsPDF}=window.jspdf,D=new jsPDF(),r=s=>String(s).norma
   D.autoTable({...opt,head:[T.head.map(r)],body:T.body.map(x=>x.map(r)),startY:y+3});y=D.lastAutoTable.finalY+10});
  if(sel.catv&&S.catv.length){if(y>250){D.addPage();y=14}D.setFontSize(12);D.setTextColor(0);D.text('CATV',14,y);D.autoTable({...opt,head:[CH],body:catvRows().map(x=>x.map(r)),startY:y+3})}
  D.save((S.name||'rack')+'.pdf')}
+/* lista echipamente */
+const norm=x=>String(x==null?'':x).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+function dlList(blank){const H=['Nume','Tip','U','Poziție','Porturi','Tip port','Consum W','Intrări UPS','Ieșiri UPS','Grupuri UPS'];
+ const data=blank?[['Switch Core','Switch',1,'',24,'RJ45',40,'','',''],['ODF Etaj 1','ODF',1,'',24,'LC','','','',''],['UPS Principal','UPS',3,'','','Priză',1000,1,4,'']]
+  :[...S.devs].sort((a,b)=>b.pos-a.pos).map(d=>[d.name,d.type,d.u,d.pos,d.ups?'':d.p,d.pt,d.w||'',d.ups?d.ups.ins:'',d.ups?d.ups.outs:'',d.ups?(d.ups.grp||[]).join(','):'']);
+ const ws=XLSX.utils.aoa_to_sheet([H,...data]);ws['!cols']=[28,14,6,9,9,10,10,12,12,14].map(w=>({wch:w}));
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Echipamente');XLSX.writeFile(wb,blank?'model-lista-echipamente.xlsx':(S.name||'rack')+'-echipamente.xlsx')}
+function importList(arr,replace,toLib){
+ if(replace&&!confirm('Ștergi echipamentele și cablurile existente și le înlocuiești cu lista încărcată?'))return;
+ if(replace){S.devs=[];S.links=[]}
+ const typ=Object.keys(COL),PT=['RJ45','SFP','Priză','SC','LC','F'],DP={ODF:'LC',UPS:'Priză',PDU:'Priză',CATV:'F'};let add=0,skip=0,bad=0;
+ arr.forEach(r0=>{const r={};Object.keys(r0).forEach(k=>r[norm(k)]=r0[k]);const name=String(r.nume||r.name||'').trim();if(!name)return;
+  let t=typ.find(x=>norm(x)===norm(r.tip||r.type));if(!t){bad++;t='Switch'}
+  const u=Math.max(1,parseInt(r.u)||1);let ups,p=Math.max(0,parseInt(r.porturi)||0),w=NOPW.includes(t)?0:(parseFloat(r['consum w']||r.consum)||0);
+  let pt=PT.find(x=>norm(x)===norm(r['tip port']))||DP[t]||'RJ45';
+  if(t==='UPS'){const ins=Math.max(1,parseInt(r['intrari ups'])||1),outs=Math.max(1,parseInt(r['iesiri ups'])||4);let grp=String(r['grupuri ups']||'').split(',').map(x=>parseInt(x)||0).filter(x=>x>0);
+   if(grp.length&&grp.reduce((a,b)=>a+b,0)!==outs)grp=[];ups={ins,outs,grp};p=ins+outs;pt='Priză'}
+  let pos=parseInt(r.pozitie)||0;if(!(pos&&fits(pos,u,-1)))pos=firstFree(u);if(!pos){skip++;return}
+  const d={id:S.nid++,name,type:t,u,pos,p,w,pt,pd:{},ups};if(ups)d.pd[1]={dest:'220V',status:'Up'};S.devs.push(d);add++;
+  if(toLib)USR.push({n:name,t,u,p,w,pt,ups})});
+ if(toLib){try{localStorage.setItem('racktpl',JSON.stringify(USR))}catch(e){}renderLib()}
+ render();alert(`Echipamente adăugate: ${add}`+(skip?`\nNu au încăput în rack: ${skip}`:'')+(bad?`\nTip necunoscut (puse ca Switch): ${bad}`:''))}
+$('lst').onclick=()=>{dlg('Listă echipamente',`<p style="color:#94a3b8;font-size:12px">Descarcă lista echipamentelor din proiect (Excel), o poți completa și reîncărca. Coloane: Nume, Tip, U, Poziție, Porturi, Tip port, Consum W, Intrări / Ieșiri / Grupuri UPS. Dacă Poziția e goală sau ocupată, echipamentul se pune în primul loc liber.</p>
+  <div class="btns" style="justify-content:flex-start"><button id="l1">Descarcă lista</button><button id="l2">Descarcă model gol</button></div><hr style="border-color:#334155">`+
+  sel('Mod import','l_m',['Adaugă la proiect','Înlocuiește echipamentele existente'],'Adaugă la proiect')+
+  `<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="l_lib" style="width:auto"> Adaugă și în librărie (șabloane)</label><label>Fișier (.xlsx, .xls sau .csv)<input type="file" id="l_f" accept=".xlsx,.xls,.csv"></label>`,()=>{});
+ $('ok').textContent='Închide';$('x').style.display='none';
+ $('l1').onclick=()=>dlList(false);$('l2').onclick=()=>dlList(true);
+ $('l_f').onchange=async e=>{const f=e.target.files[0];if(!f)return;let rowsA;
+  try{const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});rowsA=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''})}catch(x){alert('Fișier invalid.');return}
+  $('dlg').close();importList(rowsA,$('l_m').value.startsWith('Înlocuiește'),$('l_lib').checked)}};
+
 $('xl').onclick=()=>expDlg('xl');$('pf').onclick=()=>expDlg('pf');
 
 render();
