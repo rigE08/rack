@@ -57,6 +57,9 @@ body.audit #rack{width:min(100%,1000px)}body.audit .dn{font-size:14px;line-heigh
 .lab{border:1px dashed #bbb;border-left:4px solid var(--lc);padding:1mm 1.5mm;font:7.5pt/1.25 sans-serif;overflow:hidden;box-sizing:border-box}
 #labSheet{overflow:auto}
 @media print{body *{visibility:hidden}#labSheet,#labSheet *{visibility:visible}#labSheet{position:absolute;left:0;top:0;overflow:visible}.lpg{margin:0;page-break-after:always}.lab{border-color:#ddd}@page{size:A4;margin:0}}
+.p.mm{flex-direction:column}.pgs{display:flex;gap:10px;flex:1;margin:2px 0;min-width:0}.pgs .pg{margin:0}
+.p[data-t^="SFP"],.p[data-t="DAC"]{border-color:#22d3ee}.p[data-t^="QSFP"]{border-color:#e879f9}
+.gr input,.gr select{padding:3px 5px}
 </style></head><body>
 <header>
  <input id="name" placeholder="Nume proiect">
@@ -75,7 +78,7 @@ body.audit #rack{width:min(100%,1000px)}body.audit .dn{font-size:14px;line-heigh
   <div class="tabs"><button id="t1" class="on">Rack</button> <button id="t2">Live Cable Matrix</button> <button id="t3">CATV</button> <button id="t4">Topologie</button> <button id="t5">Etichete</button></div>
   <div id="power"></div><div id="hint"></div>
   <div id="vRack">
-   <div class="leg"><span><i style="background:#22c55e"></i>Ocupat</span><span><i style="background:#9ca3af"></i>Liber</span><span><i style="background:#3b82f6"></i>Trunk</span><span><i style="background:#a855f7"></i>LACP</span><span><i style="background:#f59e0b"></i>Down</span><span><i style="background:#333"></i>Disabled</span></div>
+   <div class="leg"><span><i style="background:#22c55e"></i>Ocupat</span><span><i style="background:#9ca3af"></i>Liber</span><span><i style="background:#3b82f6"></i>Trunk</span><span><i style="background:#a855f7"></i>LACP</span><span><i style="background:#f59e0b"></i>Down</span><span><i style="background:#333"></i>Disabled</span><span><i style="background:#0b0f19;border-color:#22d3ee"></i>SFP/DAC</span><span><i style="background:#0b0f19;border-color:#e879f9"></i>QSFP</span></div>
    <div id="rackbox"><div id="rack"></div></div>
   </div>
   <div id="vMat" style="display:none;overflow:auto"><div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0"><input id="mq" placeholder="Filtru echipament..." style="flex:1;min-width:140px"><button id="mo">Deschide tot</button><button id="mc">Închide tot</button></div>
@@ -113,7 +116,7 @@ function hist(d){const k=HS.i+d;if(k<0||k>=HS.st.length)return;HS.i=k;S=JSON.par
 
 const fits=(pos,u,id)=>pos>=1&&pos+u-1<=S.rackU&&!S.devs.some(d=>d.id!==id&&d.pos<=pos+u-1&&pos<=d.pos+d.u-1);
 const firstFree=u=>{for(let p=S.rackU-u+1;p>=1;p--)if(fits(p,u,-1))return p;return 0};
-function mk(t,pos){const d={id:S.nid++,name:t.n,type:t.t,u:t.u,pos,p:t.p,w:t.w,pt:t.pt||'RJ45',pd:{},ptl:t.ptl,pn:t.pn,ups:t.ups?JSON.parse(JSON.stringify(t.ups)):undefined};if(d.ups)d.pd[1]={dest:'220V',status:'Up'};return d}
+function mk(t,pos){const d={id:S.nid++,name:t.n,type:t.t,u:t.u,pos,p:t.p,w:t.w,pt:t.pt||'RJ45',pd:{},ptl:t.ptl?[...t.ptl]:undefined,pn:t.pn?[...t.pn]:undefined,groups:t.groups?t.groups.map(g=>({...g})):undefined,ups:t.ups?JSON.parse(JSON.stringify(t.ups)):undefined};if(d.ups)d.pd[1]={dest:'220V',status:'Up'};return d}
 function add(t,pos){pos=pos||firstFree(t.u);if(!pos||!fits(pos,t.u,-1)){alert('Nu există spațiu liber de '+t.u+'U în rack.');return}S.devs.push(mk(t,pos));render()}
 
 function pc(d,n){const x=d.pd[n]||{};
@@ -130,10 +133,11 @@ function renderRack(){
    grp=(a,b)=>`<div class="pg" style="grid-template-columns:repeat(${b-a+1},14px);grid-template-rows:1fr;flex:none">`+Array.from({length:b-a+1},(_,i)=>port(a+i)).join('')+'</div>';
    body=`<span class="lb">IN${x1.dest==='220V'?' 220V':''}</span>${grp(1,u.ins)}<span class="lb">OUT</span>`;let a=u.ins+1;const gs=u.grp&&u.grp.length?u.grp:[u.outs];
    gs.forEach((c,gi)=>{body+=(u.grp&&u.grp.length?`<span class="lb">G${gi+1}</span>`:'')+grp(a,a+c-1);a+=c})}
-  else if(showP&&d.p>0){const rw=rowsOf(d),cols=Math.ceil(d.p/rw);
-   body=`<div class="pg" style="grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rw},1fr)">`;
-   for(let n=1;n<=d.p;n++){const x=d.pd[n]||{};const mm=isMM(d,n);body+=`<i class="p${mm?' mm':''}${d.ptl&&ptOf(d,n)==='SFP'?' sfp':''}${x.ok?' ok':''}" data-d="${d.id}" data-n="${n}" style="background:${pc(d,n)}" title="${esc(portLabel(d,n))}${mm?' · MM duplex':''}: ${esc(x.dest||'Liber')}">${mm?'<b></b><b></b>':''}</i>`}
-   body+='</div>'}
+  else if(showP&&d.p>0){body='<div class="pgs">';
+   gridsOf(d).forEach(q=>{const rw=q.rows,cols=Math.ceil((q.b-q.a+1)/rw);
+    body+=`<div class="pg" style="grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rw},1fr);flex:${cols}">`;
+    for(let n=q.a;n<=q.b;n++){const x=d.pd[n]||{},mm=isMM(d,n);body+=`<i class="p${mm?' mm':''}${x.ok?' ok':''}" data-d="${d.id}" data-n="${n}" data-t="${esc(ptOf(d,n))}" style="background:${pc(d,n)}" title="${esc(portLabel(d,n))} [${esc(ptOf(d,n))}]${mm?' · MM duplex':''}: ${esc(x.dest||'Liber')}">${mm?'<b></b><b></b>':''}</i>`}
+    body+='</div>'});body+='</div>'}
   if(powered(d)){const x0=d.pd[0]||{};body+=`<i class="p pin" data-d="${d.id}" data-n="0" style="background:${pc(d,0)}" title="alimentare: ${esc(x0.dest||'Liber')}">⚡</i>`}
   const extra=view==='rear'?` · ${d.w}W${d.type==='PDU'?' · '+d.p+' prize':''}`:'';
   h+=`<div class="dev" draggable="${!conn.on}" data-id="${d.id}" style="top:${(S.rackU-d.pos-d.u+1)*H}px;height:${d.u*H-2}px;border-left-color:${COL[d.type]||'#888'}"><div class="dn">${esc(d.name)} <small>U${d.pos}${d.u>1?'-U'+(d.pos+d.u-1):''}${extra}</small></div>${body}</div>`});
@@ -157,14 +161,14 @@ const MO=new Set();
 function renderMat(){let h='';const q=$('mq').value.toLowerCase();
  [...S.devs].filter(d=>(d.p>0||powered(d))&&(!q||(d.name+' '+d.type).toLowerCase().includes(q))).sort((a,b)=>b.pos-a.pos).forEach(d=>{
   const fib=d.type==='ODF'||d.pt==='SC'||d.pt==='LC',rf=d.pt==='F',pp=d.type==='Patch Panel',pw=d.type==='UPS'||d.type==='PDU',sw=!fib&&!rf&&!pp&&!pw;
-  const cols=['port',...(sw?['mode','vlan']:[]),'dest','loc',...(pp||pw?[]:['status']),'color',...(fib?['fib','att']:rf?['att']:[])];
-  const HH={port:'Port',mode:'Mod',vlan:'VLAN',dest:'Destinație',loc:'Locație',status:'Status',color:'Cablu',fib:'Tip fibră',att:fib?'Atenuare dB':'Nivel dBµV'};
+  const cols=['port',...(sw?['pt','mode','vlan']:[]),'dest','loc',...(pp||pw?[]:['status']),'color',...(fib?['fib','att']:rf?['att']:[])];
+  const HH={port:'Port',mode:'Mod',vlan:'VLAN',dest:'Destinație',loc:'Locație',status:'Status',color:'Cablu',pt:'Tip port',fib:'Tip fibră',att:fib?'Atenuare dB':'Nivel dBµV'};
   const at=(n,f)=>`data-d="${d.id}" data-n="${n}" data-f="${f}"`;
   const sl=(n,f,v,o)=>{if(v&&!o.includes(v))o=[...o,v];return `<select ${at(n,f)}>${o.map(x=>`<option value="${x}"${x===v?' selected':''}>${x||'—'}</option>`).join('')}</select>`};
   const used=Object.entries(d.pd).filter(([k,x])=>k>0&&x.dest).length;
   h+=`<details data-i="${d.id}"${MO.has(d.id)?' open':''}><summary>${esc(d.name)} <small>· ${d.type} · U${d.pos}${d.u>1?'-U'+(d.pos+d.u-1):''} · ${used}/${d.p} porturi ocupate</small></summary><table><tr>${cols.map(k=>`<th>${HH[k]}</th>`).join('')}</tr>`;
   for(let n=powered(d)?0:1;n<=d.p;n++){const x=d.pd[n]||{};
-   h+='<tr>'+cols.map(k=>k==='port'?`<td>${n===0?'Alimentare':d.type==='UPS'||d.pn?portLabel(d,n):n}</td>`:n===0&&['mode','vlan','status','att'].includes(k)?'<td></td>':k==='fib'?`<td>${sl(n,k,x.fib||'SM (monomod)',['SM (monomod)','MM (multimod)'])}</td>`:k==='mode'?`<td>${sl(n,k,x.mode||'Access',['Access','Trunk','LACP'])}</td>`:k==='status'?`<td>${sl(n,k,x.status||'Up',['Up','Down','Disabled'])}</td>`:k==='color'?`<td>${sl(n,k,x.color||'',['',...Object.keys(CAB)])}</td>`:
+   h+='<tr>'+cols.map(k=>k==='port'?`<td>${n===0?'Alimentare':d.type==='UPS'||d.pn?portLabel(d,n):n}</td>`:n===0&&['pt','mode','vlan','status','att'].includes(k)?'<td></td>':k==='fib'?`<td>${sl(n,k,x.fib||'SM (monomod)',['SM (monomod)','MM (multimod)'])}</td>`:k==='pt'?`<td>${sl(n,k,ptOf(d,n),PT_ALL)}</td>`:k==='mode'?`<td>${sl(n,k,x.mode||'Access',['Access','Trunk','LACP'])}</td>`:k==='status'?`<td>${sl(n,k,x.status||'Up',['Up','Down','Disabled'])}</td>`:k==='color'?`<td>${sl(n,k,x.color||'',['',...Object.keys(CAB)])}</td>`:
     k==='dest'?`<td class="dd"><input class="d" ${at(n,k)} value="${esc(x.dest||'')}" placeholder="LIBER"><button class="pk" data-d="${d.id}" data-n="${n}" title="Alege port din alt echipament">🔌</button></td>`:
     `<td><input ${at(n,k)} value="${esc(x[k]||'')}"></td>`).join('')+'</tr>'}
   h+='</table></details>'});
@@ -185,7 +189,7 @@ function pickPort(d,n){const L=linkOf(d.id,n),cand=S.devs.filter(x=>x.p>0||power
  $('pk_q').oninput=fillD;$('pk_d').onchange=fillP;fillD();
  if(L){$('pk_d').value=L.o.id;fillP();$('pk_p').value=L.m;$('dc').onclick=()=>{unlink(d.id,n);$('dlg').close();render()}}}
 $('vMat').onchange=e=>{const t=e.target,f=t.dataset.f;if(!f)return;const d=S.devs.find(x=>x.id==t.dataset.d),n=+t.dataset.n,x=d.pd[n]=d.pd[n]||{};
- x[f]=t.value.trim();if(f==='dest')x.auto=false;save();renderRack();renderPower()};
+ if(f==='pt'){d.ptl=d.ptl||Array(d.p).fill(d.pt);d.ptl[n-1]=t.value;save();renderRack();return}x[f]=t.value.trim();if(f==='dest')x.auto=false;save();renderRack();renderPower()};
 
 function render(){save();renderRack();renderPower();$('name').value=S.name;$('size').value=S.rackU;if(tab===2)renderMat();if(tab===3)renderCatv();if(tab===4)renderTopo();if(tab===5)renderLab()}
 
@@ -196,31 +200,39 @@ function dlg(title,body,ok,extra){const D=$('dlg');
  D.innerHTML=`<h3>${title}</h3>${body}<div class="btns">${extra||''}<button id="x">Anulează</button><button id="ok" class="pri">Salvează</button></div>`;
  D.style.width='';D.style.maxHeight='90vh';D.showModal();$('x').onclick=()=>D.close();$('ok').onclick=()=>{if(ok()!==false)D.close()}}
 function devModal(d,isNew){const u0=d.ups||{ins:1,outs:4,grp:[]};
+ const G0=(d.groups&&d.groups.length)?d.groups.map(g=>({...g})):[];
+ const gx=()=>{const G=G0.filter(g=>+g.n>0).map(g=>({n:Math.max(1,parseInt(g.n)||1),t:g.t,r:Math.max(1,+g.r||1)}));if(!G.length)return null;const ptl=[];G.forEach(g=>{for(let i=0;i<g.n;i++)ptl.push(g.t)});
+  const c={};ptl.forEach(t=>c[t]=(c[t]||0)+1);return{G,ptl,p:ptl.length,pt:Object.keys(c).sort((a,b)=>c[b]-c[a])[0]}};
+ const grH=()=>G0.map((g,i)=>`<div class="gr" style="display:flex;gap:4px;margin:3px 0"><input type="number" min="1" value="${g.n}" data-i="${i}" data-k="n" style="width:64px"><select data-i="${i}" data-k="t">${PT_ALL.map(x=>`<option${x===g.t?' selected':''}>${x}</option>`).join('')}</select><select data-i="${i}" data-k="r">${[1,2,3,4].map(x=>`<option value="${x}"${x==g.r?' selected':''}>${x} ${x>1?'rânduri':'rând'}</option>`).join('')}</select><button type="button" data-del="${i}">×</button></div>`).join('');
  const rd=()=>{if($('f_t').value!=='UPS')return null;return{ins:Math.max(1,+$('f_ins').value|0),outs:Math.max(1,+$('f_outs').value|0),grp:$('f_grp').value.split(',').map(x=>+x|0).filter(x=>x>0)}};
  dlg(isNew?'Echipament nou':'Editează echipament',
   fld('Nume / etichetă','f_n',d.name)+sel('Tip','f_t',Object.keys(COL),d.type)+fld('Dimensiune (U)','f_u',d.u,'number')+fld('Poziție (U de jos)','f_pos',d.pos,'number')+
-  '<div id="f_std">'+fld('Număr porturi','f_p',d.p,'number')+sel('Tip port','f_pt',['RJ45','SFP','Priză','SC','LC','F'],d.pt)+'</div>'+
+  '<div id="f_std">'+fld('Număr porturi','f_p',d.p,'number')+sel('Tip port (dacă nu folosești grupuri)','f_pt',PT_ALL,d.pt)+'<b style="font-size:12px">Grupuri de porturi</b> <small style="color:#94a3b8">(număr · tip · rânduri; ex. 24 RJ45 pe 2 rânduri + 4 SFP pe 1 rând). Dacă ai grupuri, „Număr porturi” se ignoră.</small><div id="f_gl"></div><button type="button" id="g_add">+ Grup</button> <button type="button" id="g_ex">Exemplu 24+4</button></div>'+
   '<div id="f_ups">'+fld('Număr intrări','f_ins',u0.ins,'number')+fld('Număr ieșiri','f_outs',u0.outs,'number')+fld('Grupuri ieșiri (ex. 2,2 = două grupuri de câte 2 ieșiri; gol = fără grupuri)','f_grp',(u0.grp||[]).join(','))+'</div>'+
   '<div id="f_wr">'+fld('Consum W (la UPS: capacitate W)','f_w',d.w,'number')+'</div><div id="f_fib">'+sel('Tip fibră pentru tot ODF-ul','f_fa',['— neschimbat —','SM (monomod)','MM (multimod)'],'— neschimbat —')+'</div>',
-  ()=>{const u=Math.max(1,+$('f_u').value|0),pos=+$('f_pos').value|0,ups=rd();
+  ()=>{const u=Math.max(1,+$('f_u').value|0),pos=+$('f_pos').value|0,ups=rd(),gr=ups?null:gx();
    if(!fits(pos,u,d.id)){alert('Nu e loc: spațiul este ocupat sau depășește rack-ul.');return false}
    if(ups&&ups.grp.length&&ups.grp.reduce((a,b)=>a+b,0)!==ups.outs){alert('Suma grupurilor trebuie să fie egală cu numărul de ieșiri ('+ups.outs+').');return false}
-   Object.assign(d,{name:$('f_n').value||'Echipament',type:$('f_t').value,u,pos,p:ups?ups.ins+ups.outs:Math.max(0,+$('f_p').value|0),pt:ups?'Priză':$('f_pt').value,w:NOPW.includes($('f_t').value)?0:+$('f_w').value||0,ups:ups||undefined});if($('f_t').value==='ODF'&&$('f_fa').value[0]!=='—')for(let k=1;k<=d.p;k++){d.pd[k]=d.pd[k]||{};d.pd[k].fib=$('f_fa').value}
+   Object.assign(d,{name:$('f_n').value||'Echipament',type:$('f_t').value,u,pos,p:ups?ups.ins+ups.outs:gr?gr.p:Math.max(0,+$('f_p').value|0),pt:ups?'Priză':gr?gr.pt:$('f_pt').value,groups:gr?gr.G:undefined,ptl:gr?gr.ptl:d.ptl,w:NOPW.includes($('f_t').value)?0:+$('f_w').value||0,ups:ups||undefined});if($('f_t').value==='ODF'&&$('f_fa').value[0]!=='—')for(let k=1;k<=d.p;k++){d.pd[k]=d.pd[k]||{};d.pd[k].fib=$('f_fa').value}
    if(isNew)S.devs.push(d);
    if(d.ptl&&d.ptl.length!==d.p)delete d.ptl;if(d.pn&&d.pn.length!==d.p)delete d.pn;if(d.ups&&!d.pd[1])d.pd[1]={dest:'220V',status:'Up'};S.links=S.links.filter(l=>[l.a,l.b].every(([i,n])=>{const x=S.devs.find(z=>z.id==i);return x&&n<=x.p}));render()},
   (isNew?'':'<button id="del" class="red">Șterge</button>')+'<button id="tpl">Șablon</button>');
+ const gl=()=>{$('f_gl').innerHTML=grH()};gl();
+ $('f_gl').oninput=e=>{const t=e.target,i=+t.dataset.i;if(t.dataset.k)G0[i][t.dataset.k]=t.dataset.k==='t'?t.value:+t.value};
+ $('f_gl').onclick=e=>{const b=e.target.closest('[data-del]');if(b){G0.splice(+b.dataset.del,1);gl()}};
+ $('g_add').onclick=()=>{G0.push({n:8,t:'RJ45',r:1});gl()};$('g_ex').onclick=()=>{G0.length=0;G0.push({n:24,t:'RJ45',r:2},{n:4,t:'SFP',r:1});gl()};
  const tg=()=>{const t=$('f_t').value,u=t==='UPS';$('f_wr').style.display=NOPW.includes(t)?'none':'';$('f_fib').style.display=t==='ODF'?'':'none';$('f_ups').style.display=u?'':'none';$('f_std').style.display=u?'none':''};$('f_t').onchange=tg;tg();
  if(!isNew)$('del').onclick=()=>{S.links=S.links.filter(l=>l.a[0]!==d.id&&l.b[0]!==d.id);S.devs=S.devs.filter(x=>x!==d);$('dlg').close();render()};
- $('tpl').onclick=()=>{const ups=rd();USR.push({n:$('f_n').value||'Șablon',t:$('f_t').value,u:Math.max(1,+$('f_u').value|0),p:ups?ups.ins+ups.outs:Math.max(0,+$('f_p').value|0),w:NOPW.includes($('f_t').value)?0:+$('f_w').value||0,pt:ups?'Priză':$('f_pt').value,ups:ups||undefined});try{localStorage.setItem('racktpl',JSON.stringify(USR))}catch(e){}renderLib();$('tpl').textContent='Salvat ✓'}}
+ $('tpl').onclick=()=>{const ups=rd();USR.push({n:$('f_n').value||'Șablon',t:$('f_t').value,u:Math.max(1,+$('f_u').value|0),p:ups?ups.ins+ups.outs:(gx()||{p:Math.max(0,+$('f_p').value|0)}).p,groups:ups?undefined:(gx()||{}).G,ptl:ups?undefined:(gx()||{}).ptl,w:NOPW.includes($('f_t').value)?0:+$('f_w').value||0,pt:ups?'Priză':(gx()||{pt:$('f_pt').value}).pt,ups:ups||undefined});try{localStorage.setItem('racktpl',JSON.stringify(USR))}catch(e){}renderLib();$('tpl').textContent='Salvat ✓'}}
 function portModal(d,n){const x=d.pd[n]||{},L=linkOf(d.id,n),info=L?`<p>🔗 Conectat la <b>${esc(L.o.name)}</b> – ${portLabel(L.o,L.m)} <small>(${L.o.type})</small></p>`:'',fib=n>0&&(d.type==='ODF'||d.pt==='SC'||d.pt==='LC'),rf=n>0&&d.pt==='F',pp=d.type==='Patch Panel',pw=n===0||d.type==='UPS'||d.type==='PDU';
  const FC=['Albastru','Portocaliu','Verde','Maro','Gri','Alb','Roșu','Negru','Galben','Violet','Roz','Turcoaz'];
- const body=info+fld('Destinație / conexiune','q_d',x.dest||'')+fld('Locație (cameră / etaj, ex. Camera 211)','q_l',x.loc||'')+(pp||pw?'':sel('Status','q_s',['Up','Down','Disabled'],x.status||'Up'))+
+ const body=info+(n>0&&d.type!=='UPS'&&d.type!=='PDU'?sel('Tip port','q_pt',PT_ALL,ptOf(d,n)):'')+fld('Destinație / conexiune','q_d',x.dest||'')+fld('Locație (cameră / etaj, ex. Camera 211)','q_l',x.loc||'')+(pp||pw?'':sel('Status','q_s',['Up','Down','Disabled'],x.status||'Up'))+
   (fib?sel('Tip fibră (MM = port duplex RX/TX)','q_f',['SM (monomod)','MM (multimod)'],x.fib||'SM (monomod)')+'<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="q_all" style="width:auto"> Aplică tipul de fibră la toate porturile acestui ODF</label>'+sel('Culoare fibră','q_c',FC,x.color||FC[(n-1)%12])+fld('Atenuare măsurată (dB)','q_a',x.att||'','number')
   :rf?fld('Nivel semnal (dBµV)','q_a',x.att||'','number')+sel('Culoare cablu','q_c',CABLE,x.color||'Albastru')
   :pp||pw?sel('Culoare cablu','q_c',CABLE,x.color||'Albastru')
   :sel('Mod','q_m',['Access','Trunk','LACP'],x.mode||'Access')+fld('VLAN (ex. 10 sau 10,20,30)','q_v',x.vlan||'')+sel('Culoare cablu','q_c',CABLE,x.color||'Albastru'));
  dlg(`${esc(d.name)} – ${fib?'fibra '+n:portLabel(d,n)}`,body,
-  ()=>{const g=i=>$(i)?$(i).value.trim():'';d.pd[n]={auto:x.auto&&g('q_d')===x.dest,dest:g('q_d'),loc:g('q_l'),status:g('q_s'),mode:g('q_m')||'Access',vlan:g('q_v'),color:g('q_c'),fib:g('q_f'),att:g('q_a')};if($('q_all')&&$('q_all').checked)for(let k=1;k<=d.p;k++){d.pd[k]=d.pd[k]||{};d.pd[k].fib=g('q_f')}render()},
+  ()=>{const g=i=>$(i)?$(i).value.trim():'';d.pd[n]={auto:x.auto&&g('q_d')===x.dest,dest:g('q_d'),loc:g('q_l'),status:g('q_s'),mode:g('q_m')||'Access',vlan:g('q_v'),color:g('q_c'),fib:g('q_f'),att:g('q_a')};if($('q_all')&&$('q_all').checked)for(let k=1;k<=d.p;k++){d.pd[k]=d.pd[k]||{};d.pd[k].fib=g('q_f')}if($('q_pt')&&$('q_pt').value!==ptOf(d,n)){d.ptl=d.ptl||Array(d.p).fill(d.pt);d.ptl[n-1]=$('q_pt').value}render()},
   (L?'<button id="dc">Deconectează</button>':'')+'<button id="del" class="red">Eliberează</button>');
  if(L)$('dc').onclick=()=>{unlink(d.id,n);$('dlg').close();render()};
  $('del').onclick=()=>{unlink(d.id,n);delete d.pd[n];$('dlg').close();render()}}
@@ -241,6 +253,8 @@ R.ondrop=e=>{e.preventDefault();const t=target(e);if(!t)return;
 document.ondragend=()=>{drag=null;const g=$('ghost');if(g)g.style.display='none'};
 
 /* librărie */
+(()=>{const mx=(a,b,c,d)=>{const G=[{n:a,t:b,r:a>=16?2:1},{n:c,t:d,r:1}],ptl=[];G.forEach(g=>{for(let i=0;i<g.n;i++)ptl.push(g.t)});return{n:`Switch ${a} ${b} + ${c} ${d}`,t:'Switch',u:1,p:a+c,w:60,pt:b,ptl,groups:G}};
+ LIB.push(mx(24,'RJ45',4,'SFP'),mx(48,'RJ45',4,'SFP+'),mx(24,'RJ45',2,'QSFP'))})();
 let USR=[],pick=null;try{USR=JSON.parse(localStorage.getItem('racktpl'))||[]}catch(e){}
 const GRP={Switch:'Rețea',Router:'Rețea',Firewall:'Rețea','NVR/DVR':'Servere & înregistrare',Server:'Servere & înregistrare','Patch Panel':'Pasive (cupru)',ODF:'Fibră optică (ODF)','Tavă':'Pasive (cupru)','Blank Panel':'Pasive (cupru)',Organizator:'Pasive (cupru)',UPS:'Alimentare',PDU:'Alimentare',CATV:'CATV'};
 const OG=new Set(['Rețea']),ALL=()=>[...LIB,...USR];
@@ -323,7 +337,9 @@ function portLabel(d,n){if(n===0)return'alimentare';
   if(u.grp&&u.grp.length)for(let g=0;g<u.grp.length;g++){if(j<=a+u.grp[g])return`grup ${g+1} ieșirea ${j-a}`;a+=u.grp[g]}return'ieșirea '+j}
  if(d.pn&&d.pn[n-1])return d.pn[n-1];return(d.pt==='Priză'?'priza ':'port ')+n}
 const isMM=(d,n)=>{const x=d.pd[n]||{};return(d.type==='ODF'||d.pt==='SC'||d.pt==='LC')&&(x.fib||'').startsWith('MM')};
-const rowsOf=d=>Math.max(1,Math.min(2*d.u,Math.ceil(d.p/12))),upOf=(d,n)=>{const r=rowsOf(d);return r>1&&(n-1)%r<r/2};
+const rowsOf=d=>{if(d.type==='ODF'&&d.p>0&&Array.from({length:d.p},(_,i)=>isMM(d,i+1)).some(Boolean))return Math.max(1,Math.min(d.u,Math.ceil(d.p/12)));return Math.max(1,Math.min(2*d.u,Math.ceil(d.p/12)))};
+function gridsOf(d){if(d.groups&&d.groups.length){let a=1;return d.groups.map(g=>{const o={a,b:a+g.n-1,rows:Math.max(1,g.r||1)};a+=g.n;return o}).filter(g=>g.b>=g.a)}return[{a:1,b:d.p,rows:rowsOf(d)}]}
+const upOf=(d,n)=>{const q=gridsOf(d).find(g=>n>=g.a&&n<=g.b)||{a:1,rows:1},r=q.rows;return r>1&&(n-q.a)%r<r/2};
 const gc=()=>CAB[$('cc').value]||'#2563eb',pEl=(id,n)=>R.querySelector(`.p[data-d="${id}"][data-n="${n}"]`);
 function clearHl(){R.querySelectorAll('.hl,.tgt').forEach(x=>x.classList.remove('hl','tgt'));const h=$('hv');if(h)h.remove()}
 function drawCables(){const s=$('cab');if(!s)return;let h='';R.querySelectorAll('.p.glow').forEach(x=>x.classList.remove('glow'));
@@ -365,9 +381,12 @@ function rackCanvas(cab=true){
  S.devs.forEach(d=>{const y=T+(S.rackU-d.pos-d.u+1)*U+2,h=d.u*U-4;
   inf[d.id]=[y,h];g.fillStyle='#2b2f3a';g.fillRect(X0,y,X1-X0,h);g.strokeStyle='#4b5563';g.strokeRect(X0+.5,y+.5,X1-X0-1,h-1);g.fillStyle=COL[d.type]||'#888';g.fillRect(X0,y,6,h);if(d.type==='Organizator'){g.fillStyle='#111';for(let i=0;i<14;i++)g.fillRect(X0+30+i*((X1-X0-60)/14),y+h/2-3,22,6)}
   g.fillStyle='#e5e7eb';g.font='bold 13px sans-serif';g.fillText(d.name.slice(0,24),X0+14,y+18);g.fillStyle='#9ca3af';g.font='11px sans-serif';g.fillText(d.type+(d.w?' · '+d.w+'W':'')+(d.type==='UPS'?' · intrare 1: 220V':''),X0+14,y+34);
-  if(d.p>0){const rows=Math.max(1,Math.min(2*d.u,Math.ceil(d.p/12))),cols=Math.ceil(d.p/rows),rx=X0+200,cw=Math.min(24,(X1-rx-40)/cols),ch=Math.min(20,(h-10)/rows),sz=Math.min(cw,ch)-3;
-   for(let n=1;n<=d.p;n++){const ci=Math.floor((n-1)/rows),r=(n-1)%rows,px=rx+ci*cw,py=y+(h-rows*ch)/2+r*ch;
-    const mm=isMM(d,n),w=mm?cw-3:sz;g.fillStyle=pc(d,n);g.fillRect(px,py,w,sz);g.strokeStyle='#000';g.strokeRect(px+.5,py+.5,w,sz);if(mm){g.fillStyle='#0b0f19';const iw=(w-5)/2;g.fillRect(px+2,py+2,iw,sz-4);g.fillRect(px+3+iw,py+2,iw,sz-4)}pos[d.id+'-'+n]=[px+w/2,py+sz/2]}}
+  if(d.p>0){const GR=gridsOf(d),tc=GR.reduce((a,q)=>a+Math.ceil((q.b-q.a+1)/q.rows),0),rx=X0+200,gap=14,cw=Math.min(24,(X1-rx-40-gap*(GR.length-1))/tc);let ox=rx;
+   GR.forEach(q=>{const rows=q.rows,cols=Math.ceil((q.b-q.a+1)/rows),ch=Math.min(rows>1?20:26,(h-10)/rows);
+    for(let n=q.a;n<=q.b;n++){const i=n-q.a,ci=Math.floor(i/rows),r=i%rows,px=ox+ci*cw,py=y+(h-rows*ch)/2+r*ch,mm=isMM(d,n),sz=Math.min(cw,ch)-3,w=mm?cw-3:sz,hh=mm?ch-3:sz;
+     g.fillStyle=pc(d,n);g.fillRect(px,py,w,hh);g.strokeStyle=/^QSFP/.test(ptOf(d,n))?'#e879f9':/^SFP|^DAC/.test(ptOf(d,n))?'#22d3ee':'#000';g.strokeRect(px+.5,py+.5,w,hh);
+     if(mm){g.fillStyle='#0b0f19';const ih=(hh-5)/2;g.fillRect(px+2,py+2,w-4,ih);g.fillRect(px+2,py+3+ih,w-4,ih)}
+     pos[d.id+'-'+n]=[px+w/2,py+hh/2]}ox+=cols*cw+gap})}
   if(powered(d)){const ix=X1-26,iy=y+h/2-7;g.fillStyle=pc(d,0);g.fillRect(ix,iy,14,14);g.strokeStyle='#000';g.strokeRect(ix+.5,iy+.5,14,14);g.fillStyle='#000';g.font='bold 8px sans-serif';g.fillText('AC',ix+2,iy+10);pos[d.id+'-0']=[ix+7,iy+7]}});
  if(cab)S.links.forEach(l=>[l.a,l.b].forEach(([id,n])=>{const q=pos[id+'-'+n],d=S.devs.find(x=>x.id==id);if(!q||!d)return;
   const up=upOf(d,n),[y,h]=inf[id],org=S.devs.find(o=>o.type==='Organizator'&&(up?o.pos===d.pos+d.u:o.pos+o.u===d.pos));
@@ -382,8 +401,9 @@ $('png').onclick=()=>{let cab=true;const mk=()=>rackCanvas(cab).toDataURL('image
 
 /* extra: validare, istoric, topologie, BOM, etichete, audit, NetBox */
 const ptOf=(d,n)=>(d.ptl&&d.ptl[n-1])||d.pt;
-const pcls=(d,n)=>{if(n===0)return'pw';const t=ptOf(d,n);return t==='RJ45'?'cu':t==='SFP'?'sfp':t==='SC'||t==='LC'?'fib':t==='Priză'?'pw':t==='F'?'rf':'cu'};
-const COMPAT=(A,B)=>A===B||(A==='sfp'&&B==='fib')||(A==='fib'&&B==='sfp');
+const PT_ALL=['RJ45','SFP','SFP+','SFP28','QSFP','QSFP28','DAC','SC','LC','F','Priză'];
+const pcls=(d,n)=>{if(n===0)return'pw';const t=String(ptOf(d,n));return t==='RJ45'?'cu':/^(SFP|DAC)/.test(t)?'sfp':/^QSFP/.test(t)?'qsfp':t==='SC'||t==='LC'?'fib':t==='Priză'?'pw':t==='F'?'rf':'cu'};
+const COMPAT=(A,B)=>A===B||[['sfp','fib'],['qsfp','fib'],['qsfp','sfp']].some(([x,y])=>(A===x&&B===y)||(A===y&&B===x));
 $('un').onclick=()=>hist(-1);$('re').onclick=()=>hist(1);
 document.addEventListener('keydown',e=>{const t=e.target&&e.target.tagName;if(['INPUT','TEXTAREA','SELECT'].includes(t)||$('dlg').open||!(e.ctrlKey||e.metaKey))return;
  const k=e.key.toLowerCase();if(k==='z'){e.preventDefault();hist(e.shiftKey?1:-1)}else if(k==='y'){e.preventDefault();hist(1)}});
@@ -448,9 +468,9 @@ function linkInfo(l){const A=S.devs.find(x=>x.id==l.a[0]),B=S.devs.find(x=>x.id=
  const ca=pcls(A,l.a[1]),cb=pcls(B,l.b[1]),mid=d=>d.pos+d.u/2,du=Math.abs(mid(A)-mid(B)),lo=Math.min(A.pos,B.pos),hi=Math.max(A.pos+A.u,B.pos+B.u);
  const org=S.devs.some(o=>o.type==='Organizator'&&o.pos>=lo&&o.pos+o.u<=hi),est=du*0.04445+(org?0.4:0.8)+(A.id===B.id?0:0.2),rec=STD.find(x=>x>=est)||Math.ceil(est);let tip;
  if(ca==='pw'||cb==='pw')tip='Cablu alimentare (IEC C13–C14)';else if(ca==='cu'&&cb==='cu')tip='Patch cord Cat6 UTP';
- else if(ca==='rf'||cb==='rf')tip='Cablu coaxial RG6 cu conectori F';else if(ca==='sfp'&&cb==='sfp')tip='Cablu DAC / AOC SFP';
+ else if(ca==='rf'||cb==='rf')tip='Cablu coaxial RG6 cu conectori F';else if(ca===cb&&(ca==='sfp'||ca==='qsfp'))tip='Cablu DAC / AOC '+(ca==='sfp'?'SFP':'QSFP');else if((ca==='qsfp'&&cb==='sfp')||(ca==='sfp'&&cb==='qsfp'))tip='Cablu breakout QSFP–SFP';
  else tip='Patch cord fibră duplex '+(isMM(A,l.a[1])||isMM(B,l.b[1])?'MM':'SM');
- return{A,B,a:l.a,b:l.b,du,est,rec,tip,c:l.c,org,sfp:(ca==='sfp'?1:0)+(cb==='sfp'?1:0)}}
+ return{A,B,a:l.a,b:l.b,du,est,rec,tip,c:l.c,org,sfp:(ca==='sfp'?1:0)+(cb==='sfp'?1:0),qsfp:(ca==='qsfp'?1:0)+(cb==='qsfp'?1:0)}}
 function addBom(wb){const L=S.links.map(linkInfo).filter(Boolean);
  if(L.length){const r=[['De la','Port','La','Port','Distanță (U)','Estimat (m)','Recomandat (m)','Tip cablu','Culoare','Organizator pe traseu']];
   L.forEach(x=>r.push([x.A.name,portLabel(x.A,x.a[1]),x.B.name,portLabel(x.B,x.b[1]),+x.du.toFixed(1),+x.est.toFixed(2),x.rec,x.tip,x.c||'',x.org?'da':'nu']));
@@ -458,8 +478,8 @@ function addBom(wb){const L=S.links.map(linkInfo).filter(Boolean);
  const agg={};L.forEach(x=>{const k=[x.tip,x.c||'',x.rec].join('|');agg[k]=(agg[k]||0)+1});
  const r=[['NECESAR ACHIZIȚIE (BOM)'],[],['Cabluri'],['Tip cablu','Culoare','Lungime (m)','Cantitate']];
  Object.entries(agg).sort().forEach(([k,n])=>{const[a,b,c]=k.split('|');r.push([a,b,+c,n])});
- const sfp=L.filter(x=>x.tip.startsWith('Patch cord fibră')).reduce((a,x)=>a+x.sfp,0);
- if(sfp)r.push([],['Module'],['Descriere','','','Cantitate'],['Modul SFP (transceiver) pentru porturile conectate cu fibră','','',sfp]);
+ const F=L.filter(x=>x.tip.startsWith('Patch cord fibră')),sfp=F.reduce((a,x)=>a+x.sfp,0),qs=F.reduce((a,x)=>a+x.qsfp,0);
+ if(sfp||qs){r.push([],['Module'],['Descriere','','','Cantitate']);if(sfp)r.push(['Modul SFP (transceiver) pentru porturile conectate cu fibră','','',sfp]);if(qs)r.push(['Modul QSFP (transceiver) pentru porturile conectate cu fibră','','',qs])}
  const cnt={};S.devs.forEach(d=>{const k=d.type+'|'+d.name+'|'+d.u;cnt[k]=(cnt[k]||0)+1});
  r.push([],['Echipamente'],['Tip','Model / nume','U','Cantitate']);Object.entries(cnt).sort().forEach(([k,n])=>{const[t,m,u]=k.split('|');r.push([t,m,+u,n])});
  const ws=XLSX.utils.aoa_to_sheet(r);ws['!cols']=[44,26,14,12].map(w=>({wch:w}));XLSX.utils.book_append_sheet(wb,ws,'BOM')}
@@ -474,15 +494,16 @@ function nbParse(t){try{return window.jsyaml?jsyaml.load(t):JSON.parse(t)}catch(
 function nbMap(o){const mf=String(o.manufacturer||'').trim(),model=String(o.model||o.part_number||'Device').trim(),nm=(mf+' '+model).toLowerCase();
  const ifs=o.interfaces||[],fp=o['front-ports']||[],po=o['power-ports']||[],ou=o['power-outlets']||[];
  const it=i=>{const t=String(i.type||'').toLowerCase();if(/virtual|lag|bridge|other/.test(t)&&!/base/.test(t))return null;
-  return/base-t|base-tx/.test(t)?'RJ45':/sfp|xfp|gbic|cfp|osfp|base-x|base-[sler]r|base-cr|base-cx|base-zr/.test(t)?'SFP':'RJ45'};
+  return/base-t|base-tx/.test(t)?'RJ45':/qsfp28|100gbase/.test(t)?'QSFP28':/qsfp|40gbase/.test(t)?'QSFP':/sfp28|25gbase/.test(t)?'SFP28':/sfpp|sfp\+|10gbase|xfp/.test(t)?'SFP+':/sfp|gbic|base-x|base-[sler]r|base-cr|base-cx|base-zr|cfp/.test(t)?'SFP':'RJ45'};
  const ci=ifs.filter(i=>!i.mgmt_only&&it(i)),w=Math.round(po.reduce((a,x)=>a+(+x.maximum_draw||+x.allocated_draw||0),0)),u=Math.max(1,Math.ceil(+o.u_height||1));
- let t,p,pt='RJ45',ptl,pn,ups;
+ let t,p,pt='RJ45',ptl,pn,ups,groups;
  if(ou.length&&!ci.length&&!fp.length){if(/ups|smart-ups|back-ups|srt|online|vfi/.test(nm)){t='UPS';ups={ins:Math.max(1,po.length),outs:ou.length,grp:[]};p=ups.ins+ups.outs}else{t='PDU';p=ou.length}pt='Priză'}
  else if(!ci.length&&fp.length){const f=fp.map(x=>String(x.type||'').toLowerCase()),fiber=f.some(x=>/^(lc|sc|st|fc|mpo|mtrj|e2000)/.test(x));
   t=fiber?'ODF':'Patch Panel';p=fp.length;pt=fiber?(f.some(x=>x.startsWith('sc'))&&!f.some(x=>x.startsWith('lc'))?'SC':'LC'):'RJ45'}
  else{t=/firewall|fortigate|asa|pa-\d|usg|firepower|ngfw|srx/.test(nm)?'Firewall':/router|ccr|isr|asr|rb\d/.test(nm)?'Router':/nvr|dvr|ds-7/.test(nm)?'NVR/DVR':/server|poweredge|proliant/.test(nm)?'Server':'Switch';
-  p=ci.length;const tl=ci.map(it);pt=tl.filter(x=>x==='SFP').length>p/2?'SFP':'RJ45';if(tl.some(x=>x!==pt))ptl=tl;const nn=ci.map(i=>String(i.name||''));if(nn.some(Boolean))pn=nn}
- return{n:(mf?mf+' ':'')+model,t,u,p,w:NOPW.includes(t)?0:w,pt,ptl,pn,ups,mf}}
+  p=ci.length;const tl=ci.map(it),cc={};tl.forEach(x=>cc[x]=(cc[x]||0)+1);pt=Object.keys(cc).sort((a,b)=>cc[b]-cc[a])[0]||'RJ45';
+  if(tl.some(x=>x!==pt)){ptl=tl;groups=[];tl.forEach(x=>{const g=groups[groups.length-1];if(g&&g.t===x)g.n++;else groups.push({n:1,t:x,r:1})});groups.forEach(g=>{g.r=g.n>=16?2:1})}const nn=ci.map(i=>String(i.name||''));if(nn.some(Boolean))pn=nn}
+ return{n:(mf?mf+' ':'')+model,t,u,p,w:NOPW.includes(t)?0:w,pt,ptl,groups,pn,ups,mf}}
 function nbLib(t){if(!USR.some(x=>x.n===t.n&&x.mf===t.mf))USR.push(t);try{localStorage.setItem('racktpl',JSON.stringify(USR))}catch(e){}renderLib()}
 async function nbGet(path){const r=await fetch(NB_RAW+encodeURI(path));if(!r.ok)throw new Error(r.status);const o=nbParse(await r.text());if(!o||!o.model)throw new Error('format necunoscut');return nbMap(o)}
 $('nb').onclick=()=>{dlg('Vendor pack NetBox',`<p style="color:#94a3b8;font-size:12px">Caută în NetBox devicetype-library (GitHub), sau încarcă fișiere device-type (.yaml / .yml / .json). Șabloanele apar în librărie, grupate pe producător, cu porturile și numele lor reale.</p>
